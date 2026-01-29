@@ -1,0 +1,12 @@
+需要在 App.tsx 中替换以下文本为 t() 函数调用：
+
+Rebuild -> {t('btn.rebuild')}
+Auto Rotate -> {t('btn.autoRotate')}
+Voxel Toy Box -> {t('app.title')}
+Create your first model -> {t('voxels.empty')}
+Quick Start -> {t('preset.quickStart')}
+API Key Settings -> {t('tooltip.apiKey')}
+Export JSON -> {t('tooltip.export')}
+Copy to Clipboard -> {t('tooltip.share')}
+Model data copied to clipboard! -> {t('msg.copied')}
+Please enter your Gemini API key first -> {t('msg.enterApiKey')}

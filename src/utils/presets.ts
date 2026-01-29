@@ -269,269 +269,236 @@ function createLiL9(): Voxel[] {
   return voxels;
 }
 
-// 理想MEGA - 深灰色方正MPV（超详细版 ~700体素）
+// 理想MEGA - 银灰色方正MPV（超详细版，根据参考图重制 ~900体素）
 function createLiMega(): Voxel[] {
   const voxels: Voxel[] = [];
 
-  // 精细色彩
-  const bodyBase = '#4A4A4A';          // 基础灰
-  const bodyColor = '#5A5A5A';         // 主体深灰
-  const bodyLight = '#707070';         // 浅灰
-  const bodyDark = '#3A3A3A';          // 深灰
-  const bodyShadow = '#2A2A2A';        // 阴影
-  const windowColor = '#0A0A0A';       // 深黑玻璃
-  const windowLight = '#1A1A1A';       // 浅黑玻璃
-  const wheelColor = '#050505';        // 黑色轮胎
-  const wheelRim = '#505050';          // 轮毂
-  const lightColor = '#FFFFFF';        // 白色灯带
-  const lightGlow = '#D0D0D0';         // 灯光晕
-  const chromeColor = '#707070';       // 装饰条
-  const grillColor = '#1A1A1A';        // 格栅
+  // 精细色彩 - 根据参考图调整
+  const bodyBase = '#787878';          // 银灰基础色
+  const bodyColor = '#888888';         // 主体银灰
+  const bodyLight = '#9A9A9A';         // 亮银灰
+  const bodyDark = '#606060';          // 深银灰
+  const bodyShadow = '#484848';        // 阴影
+  const roofBlack = '#1A1A1A';         // 超大黑色车顶（全景天窗）
+  const roofDark = '#0A0A0A';          // 车顶最暗部分
+  const windowColor = '#252525';       // 深色车窗
+  const windowDark = '#151515';        // 车窗最暗部分
+  const wheelColor = '#0A0A0A';        // 黑色轮胎
+  const wheelRim = '#404040';          // 深灰轮毂
+  const lightColor = '#FFFFFF';        // 白色灯
+  const grillColor = '#101010';        // 黑色格栅
+  const megaText = '#E0E0E0';          // MEGA字样（浅色）
 
-  // === 底盘 (y=-1 到 y=0) ===
-  for (let x = -8; x <= 8; x++) {
-    for (let z = -3; z <= 3; z++) {
-      for (let y = -1; y <= 0; y++) {
-        voxels.push({ x, y, z, color: bodyShadow });
+  // === 底盘和轮胎基础 (y=-1 到 y=0) ===
+  for (let x = -9; x <= 9; x++) {
+    for (let z = -4; z <= 4; z++) {
+      if (Math.abs(z) <= 3) {
+        voxels.push({ x, y: -1, z, color: bodyShadow });
+        voxels.push({ x, y: 0, z, color: bodyDark });
       }
     }
   }
 
-  // === 车身下部第一层 (y=1) ===
-  for (let x = -8; x <= 8; x++) {
-    for (let z = -3; z <= 3; z++) {
-      if (Math.abs(z) === 3) {
-        voxels.push({ x, y: 1, z, color: bodyDark });
-      } else {
-        voxels.push({ x, y: 1, z, color: bodyBase });
+  // === 车轮 - 4个大轮子 ===
+  // 前左轮 (x=-7附近, z=-4)
+  for (let x = -8; x <= -6; x++) {
+    for (let z = -5; z <= -4; z++) {
+      for (let y = 0; y <= 2; y++) {
+        if (z === -5 || y === 0) {
+          voxels.push({ x, y, z, color: wheelColor });
+        } else {
+          voxels.push({ x, y, z, color: wheelRim });
+        }
+      }
+    }
+  }
+  // 前右轮 (x=-7附近, z=4)
+  for (let x = -8; x <= -6; x++) {
+    for (let z = 4; z <= 5; z++) {
+      for (let y = 0; y <= 2; y++) {
+        if (z === 5 || y === 0) {
+          voxels.push({ x, y, z, color: wheelColor });
+        } else {
+          voxels.push({ x, y, z, color: wheelRim });
+        }
+      }
+    }
+  }
+  // 后左轮 (x=7附近, z=-4)
+  for (let x = 6; x <= 8; x++) {
+    for (let z = -5; z <= -4; z++) {
+      for (let y = 0; y <= 2; y++) {
+        if (z === -5 || y === 0) {
+          voxels.push({ x, y, z, color: wheelColor });
+        } else {
+          voxels.push({ x, y, z, color: wheelRim });
+        }
+      }
+    }
+  }
+  // 后右轮 (x=7附近, z=4)
+  for (let x = 6; x <= 8; x++) {
+    for (let z = 4; z <= 5; z++) {
+      for (let y = 0; y <= 2; y++) {
+        if (z === 5 || y === 0) {
+          voxels.push({ x, y, z, color: wheelColor });
+        } else {
+          voxels.push({ x, y, z, color: wheelRim });
+        }
       }
     }
   }
 
-  // === 车身下部第二层 (y=2) ===
-  for (let x = -8; x <= 8; x++) {
-    for (let z = -3; z <= 3; z++) {
-      if (Math.abs(z) === 3) {
-        voxels.push({ x, y: 2, z, color: bodyBase });
-      } else {
-        voxels.push({ x, y: 2, z, color: bodyColor });
-      }
-    }
-  }
-
-  // === 车身主体 (y=3-4) - 方正MPV造型 ===
-  for (let y = 3; y <= 4; y++) {
-    for (let x = -8; x <= 8; x++) {
+  // === 车身下部 (y=1-2) - 银灰色车体 ===
+  for (let y = 1; y <= 2; y++) {
+    for (let x = -9; x <= 9; x++) {
       for (let z = -3; z <= 3; z++) {
         if (Math.abs(z) === 3) {
-          // 侧面板金 - 分层上色显示金属质感
-          if ((x + y) % 2 === 0) {
-            voxels.push({ x, y, z, color: bodyLight });
+          voxels.push({ x, y, z, color: bodyBase });
+        } else {
+          voxels.push({ x, y, z, color: y === 1 ? bodyDark : bodyColor });
+        }
+      }
+    }
+  }
+
+  // === 车身中部 (y=3-5) - 主车体+侧窗 ===
+  for (let y = 3; y <= 5; y++) {
+    for (let x = -9; x <= 9; x++) {
+      for (let z = -3; z <= 3; z++) {
+        // 侧窗区域 (左右两侧，中段)
+        if (Math.abs(z) === 3 && x >= -5 && x <= 7) {
+          // 窗户玻璃
+          if (y >= 4) {
+            voxels.push({ x, y, z, color: windowColor });
           } else {
             voxels.push({ x, y, z, color: bodyColor });
           }
-        } else if (Math.abs(z) === 2) {
+        }
+        // A柱、B柱、C柱区域（深色）
+        else if (Math.abs(z) === 3 && (x === -6 || x === -3 || x === 2 || x === 8)) {
+          voxels.push({ x, y, z, color: roofBlack });
+        }
+        // 车门区域
+        else if (Math.abs(z) === 3) {
           voxels.push({ x, y, z, color: bodyColor });
-        } else {
+        }
+        // 内部填充
+        else {
           voxels.push({ x, y, z, color: bodyLight });
         }
       }
     }
   }
 
-  // === 大窗层 (y=5-6) - MEGA标志性超大窗 ===
-  for (let y = 5; y <= 6; y++) {
+  // === 车顶 (y=6-8) - 标志性超大黑色车顶！===
+  for (let y = 6; y <= 8; y++) {
     for (let x = -8; x <= 8; x++) {
       for (let z = -3; z <= 3; z++) {
-        // 侧面大窗
-        if (Math.abs(z) === 2 && x >= -7 && x <= 7) {
-          // 窗框分隔 - 每3格一个分隔
-          if (x % 3 === 0) {
-            voxels.push({ x, y, z, color: bodyColor });
+        if (y === 6) {
+          // 车顶边缘还是车身色
+          if (Math.abs(z) === 3 || x === -8 || x === 8) {
+            voxels.push({ x, y, z, color: bodyDark });
           } else {
-            voxels.push({ x, y, z, color: y === 5 ? windowColor : windowLight });
+            // 开始黑色车顶
+            voxels.push({ x, y, z, color: roofBlack });
           }
-        }
-        // 外侧装饰条
-        else if (Math.abs(z) === 3) {
-          voxels.push({ x, y, z, color: chromeColor });
-        }
-        // 前后窗区域
-        else if (Math.abs(z) <= 1) {
-          if ((x <= -6 || x >= 6) && Math.abs(z) === 1) {
-            voxels.push({ x, y, z, color: windowColor });
-          } else if (z === 0) {
-            if (x >= -5 && x <= 5) {
-              voxels.push({ x, y, z, color: bodyLight });
-            } else {
-              voxels.push({ x, y, z, color: windowColor });
-            }
-          } else {
-            voxels.push({ x, y, z, color: bodyLight });
+        } else if (y === 7) {
+          // 大面积黑色全景天窗
+          if (x >= -7 && x <= 7 && Math.abs(z) <= 2) {
+            voxels.push({ x, y, z, color: roofBlack });
           }
-        }
-        else {
-          voxels.push({ x, y, z, color: bodyColor });
+        } else if (y === 8) {
+          // 车顶最高点，更暗
+          if (x >= -6 && x <= 6 && Math.abs(z) <= 2) {
+            voxels.push({ x, y, z, color: roofDark });
+          }
         }
       }
     }
   }
 
-  // === 车顶 (y=7-8) - 平直MPV车顶 ===
-  for (let y = 7; y <= 8; y++) {
-    for (let x = -8; x <= 8; x++) {
-      for (let z = -3; z <= 3; z++) {
-        if (y === 7) {
-          voxels.push({ x, y, z, color: bodyDark });
-        } else if (y === 8 && x >= -7 && x <= 7 && Math.abs(z) <= 2) {
-          voxels.push({ x, y, z, color: bodyShadow });
-        }
-      }
-    }
-  }
-
-  // 车顶线条
-  for (let x = -6; x <= 6; x++) {
-    voxels.push({ x, y: 9, z: 0, color: bodyShadow });
-  }
-
-  // === 前脸 (z=4 到 z=6) - MEGA特征前脸 ===
+  // === 前脸 (x=-10到-11) - MEGA特征前脸 ===
   // 前保险杠
-  for (let x = -7; x <= 7; x++) {
+  for (let z = -3; z <= 3; z++) {
     for (let y = 1; y <= 2; y++) {
-      voxels.push({ x, y, z: 4, color: bodyDark });
+      voxels.push({ x: -10, y, z, color: bodyShadow });
     }
   }
 
-  // 贯穿式灯带 (z=5) - MEGA标志
-  for (let x = -7; x <= 7; x++) {
+  // 前格栅区域 - 黑色格栅
+  for (let z = -2; z <= 2; z++) {
     for (let y = 2; y <= 3; y++) {
-      if (y === 2) {
-        voxels.push({ x, y, z: 5, color: lightColor });
-      } else {
-        voxels.push({ x, y, z: 5, color: lightGlow });
-      }
+      voxels.push({ x: -10, y, z, color: grillColor });
     }
   }
 
-  // 下部进气格栅
-  for (let x = -5; x <= 5; x++) {
-    voxels.push({ x, y: 1, z: 5, color: bodyDark });
-    voxels.push({ x, y: 2, z: 6, color: grillColor });
+  // "MEGA"标识区域 - 在前格栅上
+  for (let z = -1; z <= 1; z++) {
+    voxels.push({ x: -10, y: 3, z, color: megaText });
   }
+
+  // 前大灯（左右两侧）
+  voxels.push({ x: -10, y: 3, z: -3, color: lightColor });
+  voxels.push({ x: -10, y: 3, z: 3, color: lightColor });
+  voxels.push({ x: -10, y: 2, z: -3, color: lightColor });
+  voxels.push({ x: -10, y: 2, z: 3, color: lightColor });
 
   // 引擎盖
-  for (let x = -6; x <= 6; x++) {
+  for (let z = -2; z <= 2; z++) {
     for (let y = 4; y <= 5; y++) {
-      voxels.push({ x, y, z: 5, color: (x + y) % 2 === 0 ? bodyLight : bodyColor });
+      voxels.push({ x: -10, y, z, color: bodyLight });
+      voxels.push({ x: -9, y, z, color: bodyColor });
     }
   }
 
   // 前挡风玻璃
-  for (let x = -5; x <= 5; x++) {
+  for (let z = -2; z <= 2; z++) {
     for (let y = 6; y <= 7; y++) {
-      voxels.push({ x, y, z: 4, color: windowLight });
+      voxels.push({ x: -9, y, z, color: windowColor });
+      if (y === 7) {
+        voxels.push({ x: -8, y, z, color: windowDark });
+      }
     }
   }
 
-  // === 后部 (z=-4 到 z=-6) ===
+  // === 后部 (x=10到11) ===
   // 后保险杠
-  for (let x = -7; x <= 7; x++) {
+  for (let z = -3; z <= 3; z++) {
     for (let y = 1; y <= 2; y++) {
-      voxels.push({ x, y, z: -4, color: bodyDark });
+      voxels.push({ x: 10, y, z, color: bodyShadow });
     }
   }
 
-  // 后尾灯
-  for (let y = 3; y <= 4; y++) {
-    for (let x = -7; x <= 7; x++) {
-      if (x >= -7 && x <= -4) {
-        voxels.push({ x, y, z: -5, color: '#CC3333' });
-      } else if (x >= 4 && x <= 7) {
-        voxels.push({ x, y, z: -5, color: '#CC3333' });
-      } else if (y === 3) {
-        voxels.push({ x, y, z: -5, color: bodyBase });
+  // 后尾灯（贯穿式）
+  for (let z = -3; z <= 3; z++) {
+    for (let y = 3; y <= 4; y++) {
+      if (Math.abs(z) >= 2) {
+        voxels.push({ x: 10, y, z, color: '#CC2222' }); // 红色尾灯
       } else {
-        voxels.push({ x, y, z: -5, color: bodyColor });
+        voxels.push({ x: 10, y, z, color: '#882222' });
       }
     }
   }
 
-  // 后窗
-  for (let x = -6; x <= 6; x++) {
-    for (let y = 5; y <= 7; y++) {
-      voxels.push({ x, y, z: -4, color: y <= 6 ? windowColor : windowLight });
+  // 后车窗
+  for (let z = -2; z <= 2; z++) {
+    for (let y = 5; y <= 6; y++) {
+      voxels.push({ x: 10, y, z, color: windowColor });
+      voxels.push({ x: 9, y, z, color: windowDark });
     }
   }
 
-  // 侧滑门轨道 - MPV特征
-  for (let x = -6; x <= 5; x++) {
-    voxels.push({ x, y: 4, z: 4, color: bodyDark });
-    voxels.push({ x, y: 4, z: -4, color: bodyDark });
+  // === 车门把手 ===
+  for (let x = -4; x <= 6; x += 5) {
+    voxels.push({ x, y: 4, z: 4, color: bodyShadow });
+    voxels.push({ x, y: 4, z: -4, color: bodyShadow });
   }
 
-  // === 轮胎和轮毂 - 四个大轮 ===
-  // 前左轮
-  for (let x = -9; x <= -8; x++) {
-    for (let z = -3; z <= -2; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (x === -9) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: y === 1 ? wheelRim : wheelColor });
-        }
-      }
-    }
-  }
-  // 前右轮
-  for (let x = -9; x <= -8; x++) {
-    for (let z = 2; z <= 3; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (x === -9) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: y === 1 ? wheelRim : wheelColor });
-        }
-      }
-    }
-  }
-
-  // 后左轮
-  for (let x = 8; x <= 9; x++) {
-    for (let z = -3; z <= -2; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (x === 9) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: y === 1 ? wheelRim : wheelColor });
-        }
-      }
-    }
-  }
-  // 后右轮
-  for (let x = 8; x <= 9; x++) {
-    for (let z = 2; z <= 3; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (x === 9) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: y === 1 ? wheelRim : wheelColor });
-        }
-      }
-    }
-  }
-
-  // === 后视镜 ===
-  voxels.push({ x: -8, y: 7, z: -4, color: bodyColor });
-  voxels.push({ x: -9, y: 7, z: -4, color: windowColor });
-  voxels.push({ x: -8, y: 7, z: 4, color: bodyColor });
-  voxels.push({ x: -9, y: 7, z: 4, color: windowColor });
-
-  // === 细节装饰 ===
-  // 腰线装饰
-  for (let x = -7; x <= 7; x++) {
-    voxels.push({ x, y: 3, z: 4, color: chromeColor });
-    voxels.push({ x, y: 3, z: -4, color: chromeColor });
+  // === 侧面腰线 ===
+  for (let x = -8; x <= 8; x++) {
+    voxels.push({ x, y: 3, z: 4, color: bodyDark });
+    voxels.push({ x, y: 3, z: -4, color: bodyDark });
   }
 
   return voxels;

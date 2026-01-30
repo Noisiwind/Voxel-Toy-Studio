@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Hands, Results } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
 import { Video, VideoOff } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HandGestureControlProps {
   onDismantle: () => void;
@@ -11,59 +12,41 @@ interface HandGestureControlProps {
   onGrab: (handX: number, handY: number, handZ: number) => void;
   onGrabMove: (handX: number, handY: number, handZ: number) => void;
   onGrabRelease: () => void;
+  onPointerMove: (handX: number, handY: number) => void;
+  onPointerSelect: () => void;
 }
 
-// 手势识别逻辑
-function detectGesture(landmarks: any): string {
-  if (!landmarks || landmarks.length === 0) return 'none';
-
-  const hand = landmarks[0];
+// 检测单手手势
+function detectHandGesture(hand: any): string {
+  if (!hand) return 'none';
 
   // 计算手指伸展状态
-  const thumbUp = hand[4].y < hand[3].y;
   const indexUp = hand[8].y < hand[6].y;
   const middleUp = hand[12].y < hand[10].y;
   const ringUp = hand[16].y < hand[14].y;
   const pinkyUp = hand[20].y < hand[18].y;
 
-  // 拳头 - 拆解
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp) {
-    return 'fist'; // 拆解
-  }
-
-  // 张开手掌 - 重组
+  // 张开手掌（所有手指伸展）
   if (indexUp && middleUp && ringUp && pinkyUp) {
-    return 'open'; // 重组
+    return 'open';
   }
 
-  // V字手势（食指和中指伸展，其他收起）- 缩放
+  // V字手势（食指和中指伸展）
   if (indexUp && middleUp && !ringUp && !pinkyUp) {
-    return 'peace'; // V字手势用于缩放
+    return 'peace';
+  }
+
+  // 比"1"（只有食指伸出）
+  if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+    return 'point';
+  }
+
+  // 握拳（所有手指收起）
+  if (!indexUp && !middleUp && !ringUp && !pinkyUp) {
+    return 'fist';
   }
 
   return 'none';
-}
-
-// 检测双手合拢手势
-function detectTwoHandsGrab(landmarks: any): boolean {
-  if (!landmarks || landmarks.length < 2) return false;
-
-  const leftHand = landmarks[0];
-  const rightHand = landmarks[1];
-
-  // 获取两手的手掌中心位置（关键点9）
-  const leftPalm = leftHand[9];
-  const rightPalm = rightHand[9];
-
-  // 计算两手之间的距离
-  const distance = Math.sqrt(
-    Math.pow(leftPalm.x - rightPalm.x, 2) +
-    Math.pow(leftPalm.y - rightPalm.y, 2) +
-    Math.pow(leftPalm.z - rightPalm.z, 2)
-  );
-
-  // 当两手距离小于0.15时视为合拢（抓取）
-  return distance < 0.15;
 }
 
 export default function HandGestureControl({
@@ -74,7 +57,10 @@ export default function HandGestureControl({
   onGrab,
   onGrabMove,
   onGrabRelease,
+  onPointerMove,
+  onPointerSelect,
 }: HandGestureControlProps) {
+  const { t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isActive, setIsActive] = useState(false);
@@ -86,9 +72,15 @@ export default function HandGestureControl({
   const lastHandPositionRef = useRef<{ x: number; y: number } | null>(null);
   const peaceStartYRef = useRef<number | null>(null);
   const isGrabbingRef = useRef<boolean>(false);
+  const leftGestureRef = useRef<string>('none');
+  const rightGestureRef = useRef<string>('none');
+  const lastRightGestureRef = useRef<string>('none');
+  const isPointingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!isActive) return;
+
+    console.log('Hand gesture control activated, initializing camera...');
 
     const hands = new Hands({
       locateFile: (file) => {
@@ -116,9 +108,26 @@ export default function HandGestureControl({
 
       // 绘制手部标记
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        // 绘制所有手的关键点
+        // 识别左右手
+        let leftHand = null;
+        let rightHand = null;
+        let leftHandIndex = -1;
+        let rightHandIndex = -1;
+
         results.multiHandLandmarks.forEach((landmarks, handIndex) => {
-          ctx.fillStyle = handIndex === 0 ? '#00FF00' : '#0088FF'; // 左手绿色，右手蓝色
+          const handedness = results.multiHandedness?.[handIndex]?.label;
+
+          // MediaPipe的左右手是从摄像头角度（镜像），所以Left是右手，Right是左手
+          if (handedness === 'Right') {
+            leftHand = landmarks;
+            leftHandIndex = handIndex;
+          } else if (handedness === 'Left') {
+            rightHand = landmarks;
+            rightHandIndex = handIndex;
+          }
+
+          // 绘制关键点
+          ctx.fillStyle = handedness === 'Right' ? '#00FF00' : '#0088FF';
           landmarks.forEach((landmark) => {
             ctx.beginPath();
             ctx.arc(
@@ -132,109 +141,146 @@ export default function HandGestureControl({
           });
         });
 
-        const landmarks = results.multiHandLandmarks[0];
+        // 检测左手手势（控制模型状态）
+        const leftGesture = leftHand ? detectHandGesture(leftHand) : 'none';
+        leftGestureRef.current = leftGesture;
 
-        // 检测单手手势
-        const gesture = detectGesture(results.multiHandLandmarks);
-
-        // 检测双手合拢
-        const isTwoHandsGrab = detectTwoHandsGrab(results.multiHandLandmarks);
-
-        if (isTwoHandsGrab) {
-          setCurrentGesture('grab');
-        } else {
-          setCurrentGesture(gesture);
-        }
+        // 检测右手手势（控制交互）
+        const rightGesture = rightHand ? detectHandGesture(rightHand) : 'none';
+        rightGestureRef.current = rightGesture;
 
         const now = Date.now();
 
-        // 手势触发（避免频繁触发）
-        if (gesture !== lastGestureRef.current && now - gestureTimeRef.current > 1000) {
-          if (gesture === 'fist') {
+        // === 左手控制：拆解和重组 ===
+        if (leftGesture !== 'none' && now - gestureTimeRef.current > 1000) {
+          if (leftGesture === 'fist') {
             onDismantle();
             gestureTimeRef.current = now;
-          } else if (gesture === 'open') {
+            setCurrentGesture('left-fist');
+          } else if (leftGesture === 'open') {
             onRebuild();
             gestureTimeRef.current = now;
-          }
-          lastGestureRef.current = gesture;
-        }
-
-        // 手部位置用于旋转视角（只在单手且无特殊手势时）
-        const handCenter = {
-          x: landmarks[9].x, // 手掌中心
-          y: landmarks[9].y,
-        };
-
-        if (lastHandPositionRef.current && gesture === 'none' && !isTwoHandsGrab) {
-          const deltaX = (handCenter.x - lastHandPositionRef.current.x) * 500;
-          const deltaY = (handCenter.y - lastHandPositionRef.current.y) * 500;
-          if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
-            onRotate(deltaX, deltaY);
+            setCurrentGesture('left-open');
           }
         }
 
-        lastHandPositionRef.current = handCenter;
+        // === 右手控制：指针选择、抓取、旋转、缩放 ===
+        if (rightHand) {
+          const handCenter = {
+            x: rightHand[9].x,
+            y: rightHand[9].y,
+          };
 
-        // 双手合拢用于抓取
-        if (isTwoHandsGrab) {
-          // 计算两手的中心位置
-          let centerX = 0;
-          let centerY = 0;
-          let centerZ = 0;
+          // 右手比"1" = 指针选择（随时可用）
+          if (rightGesture === 'point') {
+            // 反转X和Y方向，使手势与屏幕移动方向一致
+            const handX = -(handCenter.x * 2 - 1);
+            const handY = -(handCenter.y * 2 - 1); // Y方向也反转
 
-          if (results.multiHandLandmarks.length >= 2) {
-            const leftPalm = results.multiHandLandmarks[0][9];
-            const rightPalm = results.multiHandLandmarks[1][9];
+            // 持续发送指针位置
+            onPointerMove(handX, handY);
+            isPointingRef.current = true;
+            setCurrentGesture('right-point');
 
-            centerX = (leftPalm.x + rightPalm.x) / 2;
-            centerY = (leftPalm.y + rightPalm.y) / 2;
-            centerZ = (leftPalm.z + rightPalm.z) / 2;
+            // 如果之前在抓取，松开抓取
+            if (isGrabbingRef.current) {
+              onGrabRelease();
+              isGrabbingRef.current = false;
+            }
+          }
+          // 右手握拳 = 抓取（拆解状态下才生效）
+          else if (rightGesture === 'fist') {
+            // 如果刚从指针模式切换过来，先选中体素
+            if (lastRightGestureRef.current === 'point' && isPointingRef.current) {
+              onPointerSelect(); // 告诉引擎锁定选中的体素
+              isPointingRef.current = false;
+            }
+
+            // 反转X和Y方向，使手势与屏幕移动方向一致
+            const handX = -(handCenter.x * 2 - 1);
+            const handY = -(handCenter.y * 2 - 1); // Y方向也反转
+            const handZ = Math.max(0, Math.min(1, (1 + rightHand[9].z) / 2));
+
+            if (!isGrabbingRef.current) {
+              onGrab(handX, handY, handZ);
+              isGrabbingRef.current = true;
+              setCurrentGesture('right-grab');
+            } else {
+              onGrabMove(handX, handY, handZ);
+            }
           } else {
-            centerX = handCenter.x;
-            centerY = handCenter.y;
-            centerZ = 0;
+            // 松开抓取
+            if (isGrabbingRef.current) {
+              onGrabRelease();
+              isGrabbingRef.current = false;
+            }
+
+            // 不再是指针模式
+            if (isPointingRef.current) {
+              isPointingRef.current = false;
+            }
+
+            // 右手张开 = 旋转视角（随时可用）
+            if (rightGesture === 'open') {
+              if (lastHandPositionRef.current) {
+                // 反转方向，使手势方向与屏幕移动方向一致
+                const deltaX = (lastHandPositionRef.current.x - handCenter.x) * 500;
+                const deltaY = (lastHandPositionRef.current.y - handCenter.y) * 500;
+                if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+                  onRotate(deltaX, deltaY);
+                }
+              }
+              lastHandPositionRef.current = handCenter;
+              setCurrentGesture('right-rotate');
+            }
+
+            // 右手V字 = 缩放（随时可用）
+            else if (rightGesture === 'peace') {
+              const indexTipY = rightHand[8].y;
+
+              if (peaceStartYRef.current === null) {
+                peaceStartYRef.current = indexTipY;
+              } else {
+                // 反转方向：向上拉放大，向下拉缩小
+                const deltaY = (indexTipY - peaceStartYRef.current) * 20;
+                if (Math.abs(deltaY) > 0.5) {
+                  onZoom(deltaY);
+                  peaceStartYRef.current = indexTipY;
+                }
+              }
+              setCurrentGesture('right-zoom');
+            } else {
+              peaceStartYRef.current = null;
+            }
           }
 
-          // 计算手的中心位置（归一化坐标，-1到1）
-          const handX = (centerX * 2 - 1);
-          const handY = -(centerY * 2 - 1); // Y轴反转
-
-          // 使用Z坐标作为深度提示（0到1）
-          const handZ = Math.max(0, Math.min(1, (1 + centerZ) / 2));
-
-          if (!isGrabbingRef.current) {
-            // 开始抓取
-            onGrab(handX, handY, handZ);
-            isGrabbingRef.current = true;
-          } else {
-            // 更新抓取位置
-            onGrabMove(handX, handY, handZ);
-          }
+          lastRightGestureRef.current = rightGesture;
         } else {
-          // 松开抓取
+          // 没有右手，重置状态
           if (isGrabbingRef.current) {
             onGrabRelease();
             isGrabbingRef.current = false;
           }
-        }
-
-        // V字手势用于缩放
-        if (gesture === 'peace') {
-          const indexTipY = landmarks[8].y;
-
-          if (peaceStartYRef.current === null) {
-            peaceStartYRef.current = indexTipY;
-          } else {
-            const deltaY = (peaceStartYRef.current - indexTipY) * 20;
-            if (Math.abs(deltaY) > 0.5) {
-              onZoom(deltaY);
-              peaceStartYRef.current = indexTipY;
-            }
+          if (isPointingRef.current) {
+            isPointingRef.current = false;
           }
-        } else {
+          lastHandPositionRef.current = null;
           peaceStartYRef.current = null;
+          lastRightGestureRef.current = 'none';
         }
+
+        // 更新显示状态
+        if (leftGesture === 'none' && rightGesture === 'none') {
+          setCurrentGesture('none');
+        }
+      } else {
+        // 没有检测到手，重置所有状态
+        if (isGrabbingRef.current) {
+          onGrabRelease();
+          isGrabbingRef.current = false;
+        }
+        lastHandPositionRef.current = null;
+        setCurrentGesture('none');
       }
 
       ctx.restore();
@@ -253,7 +299,10 @@ export default function HandGestureControl({
         height: 240,
       });
       cameraRef.current = camera;
-      camera.start();
+      camera.start().catch((error) => {
+        console.error('Failed to start camera:', error);
+        alert('无法访问摄像头，请确保：\n1. 浏览器有摄像头权限\n2. 没有其他应用正在使用摄像头\n3. 使用Chrome/Edge等支持的浏览器');
+      });
     }
 
     return () => {
@@ -264,13 +313,16 @@ export default function HandGestureControl({
         handsRef.current.close();
       }
     };
-  }, [isActive, onDismantle, onRebuild, onZoom, onRotate]);
+  }, [isActive, onDismantle, onRebuild, onZoom, onRotate, onGrab, onGrabMove, onGrabRelease, onPointerMove, onPointerSelect]);
 
   return (
     <>
       {/* 手势控制按钮 - 将被放置在左侧按钮组中 */}
       <button
-        onClick={() => setIsActive(!isActive)}
+        onClick={() => {
+          console.log('Gesture control button clicked, current state:', isActive);
+          setIsActive(!isActive);
+        }}
         className={`w-full text-left transition-all ${
           isActive ? 'opacity-100' : 'opacity-100'
         }`}
@@ -283,7 +335,7 @@ export default function HandGestureControl({
           }`}
         >
           {isActive ? <Video className="inline mr-2" size={20} /> : <VideoOff className="inline mr-2" size={20} />}
-          手势控制
+          {t('btn.gestureControl')}
         </div>
       </button>
 
@@ -304,18 +356,24 @@ export default function HandGestureControl({
                 className="w-80 h-60"
               />
               <div className="absolute bottom-2 left-2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                手势: {currentGesture === 'fist' ? '✊ 拆解' :
-                       currentGesture === 'open' ? '🖐 重组' :
-                       currentGesture === 'peace' ? '✌️ 缩放' :
-                       currentGesture === 'grab' ? '🙌 抓取' : '👋 移动视角'}
+                {currentGesture === 'left-fist' ? '✊ 左手拆解' :
+                 currentGesture === 'left-open' ? '🖐 左手重组' :
+                 currentGesture === 'right-point' ? '☝️ 右手选择' :
+                 currentGesture === 'right-grab' ? '✊ 右手抓取' :
+                 currentGesture === 'right-rotate' ? '🖐 右手旋转' :
+                 currentGesture === 'right-zoom' ? '✌️ 右手缩放' :
+                 '👋 待机'}
               </div>
             </div>
             <div className="p-3 bg-gray-50 text-xs text-gray-600">
+              <p className="font-bold mb-1 text-green-600">左手（绿色）- 模型控制：</p>
               <p>✊ 握拳 = 拆解</p>
-              <p>🖐 张开手掌 = 重组</p>
-              <p>✌️ V字手势上下移动 = 缩放</p>
-              <p>🙌 双手合拢 = 抓取抛掷</p>
-              <p>👋 移动手 = 旋转视角</p>
+              <p>🖐 张开 = 重组</p>
+              <p className="font-bold mt-2 mb-1 text-blue-600">右手（蓝色）- 视角交互：</p>
+              <p>☝️ 比1 = 选择体素（光标模式）</p>
+              <p>✊ 握拳移动 = 抓取拖拽</p>
+              <p>🖐 张开移动 = 旋转视角</p>
+              <p>✌️ V字上下 = 缩放</p>
             </div>
           </div>
         </div>

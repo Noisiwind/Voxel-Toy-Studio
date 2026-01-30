@@ -11,7 +11,7 @@ const translations: Translations = {
   en: {
     // Header
     'app.title': 'Li Auto Voxel Studio',
-    'voxels.count': 'voxels',
+    'voxels.count': 'Voxel Blocks',
     'voxels.empty': 'Let Li help you create your first model',
 
     // Buttons
@@ -19,6 +19,11 @@ const translations: Translations = {
     'btn.dismantle': 'Dismantle',
     'btn.rebuild': 'Rebuild',
     'btn.autoRotate': 'Auto Rotate',
+    'btn.undo': 'Undo',
+    'btn.redo': 'Redo',
+    'btn.paintMode': 'Paint Mode',
+    'btn.gestureControl': 'Gesture Control',
+    'btn.editModel': 'Customize Model',
     'btn.generate': 'Generate',
     'btn.generating': 'Li is creating...',
     'btn.cancel': 'Cancel',
@@ -70,7 +75,7 @@ const translations: Translations = {
   zh: {
     // 标题
     'app.title': '理想同学像素玩具工作室',
-    'voxels.count': '个体素',
+    'voxels.count': '像素块',
     'voxels.empty': '让理想同学帮你创建第一个模型',
 
     // 按钮
@@ -78,6 +83,11 @@ const translations: Translations = {
     'btn.dismantle': '拆解',
     'btn.rebuild': '重组',
     'btn.autoRotate': '自动旋转',
+    'btn.undo': '撤销',
+    'btn.redo': '重做',
+    'btn.paintMode': '涂色模式',
+    'btn.gestureControl': '手势控制',
+    'btn.editModel': '自定义模型',
     'btn.generate': '生成',
     'btn.generating': '理想同学正在创建中...',
     'btn.cancel': '取消',

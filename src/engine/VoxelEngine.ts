@@ -5,6 +5,8 @@ export class VoxelEngine {
   private scene: THREE.Scene;
   private instancedMesh: THREE.InstancedMesh | null = null;
   private voxels: Voxel[] = [];
+  private originalVoxels: Voxel[] = []; // 保存原始voxels（没有Y偏移）
+  private yOffset: number = 0; // Y轴偏移量
   private state: EngineState = 'stable';
   private physics: VoxelPhysics[] = [];
   private targetPositions: THREE.Vector3[] = [];
@@ -26,8 +28,52 @@ export class VoxelEngine {
   private lastGrabPosition = new THREE.Vector3();
   private grabVelocity = new THREE.Vector3();
 
+  // 抓取光标（视觉指引）
+  private grabCursor: THREE.Mesh | null = null;
+
+  // 指针选择功能
+  private pointerCursor: THREE.Mesh | null = null;
+  private selectedVoxelIndices: Set<number> = new Set(); // 改为Set存储多个
+  private highlightedVoxelIndices: Set<number> = new Set(); // 改为Set存储多个
+  private originalColors: THREE.Color[] = [];
+  private selectionRadius = 3; // 选择半径
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+    this.createGrabCursor();
+    this.createPointerCursor();
+  }
+
+  /**
+   * 创建抓取光标（视觉指引）
+   */
+  private createGrabCursor() {
+    const cursorGeometry = new THREE.SphereGeometry(2.5, 32, 32);
+    const cursorMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.4,
+      wireframe: true,
+    });
+    this.grabCursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
+    this.grabCursor.visible = false;
+    this.scene.add(this.grabCursor);
+  }
+
+  /**
+   * 创建指针光标（选择体素用）- 更大的圆环表示选择范围
+   */
+  private createPointerCursor() {
+    const cursorGeometry = new THREE.RingGeometry(2.5, 3.5, 32);
+    const cursorMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffff00,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide,
+    });
+    this.pointerCursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
+    this.pointerCursor.visible = false;
+    this.scene.add(this.pointerCursor);
   }
 
   createModel(voxels: Voxel[]) {
@@ -44,12 +90,15 @@ export class VoxelEngine {
 
     // 计算最小 Y 值，确保模型底部在地板上方
     const minY = Math.min(...voxels.map(v => v.y));
-    const yOffset = minY < 0 ? -minY + 0.5 : 0.5; // 至少抬高 0.5，避免与地板重叠
+    this.yOffset = minY < 0 ? -minY + 0.5 : 0.5; // 至少抬高 0.5，避免与地板重叠
+
+    // 保存原始voxels
+    this.originalVoxels = voxels;
 
     // 应用 Y 轴偏移
     this.voxels = voxels.map(v => ({
       ...v,
-      y: v.y + yOffset
+      y: v.y + this.yOffset
     }));
 
     this.state = 'stable';
@@ -81,6 +130,7 @@ export class VoxelEngine {
       this.instancedMesh!.setColorAt(i, color);
     });
 
+    // 强制更新
     this.instancedMesh.instanceMatrix.needsUpdate = true;
     if (this.instancedMesh.instanceColor) {
       this.instancedMesh.instanceColor.needsUpdate = true;
@@ -93,12 +143,18 @@ export class VoxelEngine {
     this.targetPositions = [];
     this.currentPositions = voxels.map(v => new THREE.Vector3(v.x, v.y, v.z));
     this.currentRotations = voxels.map(() => new THREE.Euler(0, 0, 0));
+
+    // 保存原始颜色用于高亮
+    this.originalColors = voxels.map(v => new THREE.Color(v.color));
   }
 
   dismantle() {
     if (!this.instancedMesh || this.state !== 'stable') return;
 
     this.state = 'dismantling';
+
+    // 隐藏指针光标
+    this.hidePointer();
 
     // 为每个方块生成随机速度
     this.physics = this.voxels.map(() => ({
@@ -119,6 +175,9 @@ export class VoxelEngine {
     if (!this.instancedMesh) return;
 
     this.state = 'rebuilding';
+
+    // 隐藏指针光标
+    this.hidePointer();
 
     // 计算新模型的最小 Y 值并应用偏移
     const minY = Math.min(...newVoxels.map(v => v.y));
@@ -373,6 +432,121 @@ export class VoxelEngine {
   // === 手势抓取交互功能 ===
 
   /**
+   * 指针移动（右手比1时调用）
+   * @param camera 相机对象
+   * @param handX 手的2D屏幕X坐标（-1到1）
+   * @param handY 手的2D屏幕Y坐标（-1到1）
+   */
+  updatePointer(camera: THREE.Camera, handX: number, handY: number): void {
+    if (!this.instancedMesh) return;
+
+    // 设置射线
+    this.raycaster.setFromCamera(new THREE.Vector2(handX, handY), camera);
+
+    // 找到最近的被射线命中的体素
+    const tempMatrix = new THREE.Matrix4();
+    const tempBox = new THREE.Box3();
+    let closestDistance = Infinity;
+    let closestIndex = -1;
+
+    for (let i = 0; i < this.voxels.length; i++) {
+      this.instancedMesh.getMatrixAt(i, tempMatrix);
+      const position = new THREE.Vector3();
+      position.setFromMatrixPosition(tempMatrix);
+
+      // 创建体素包围盒
+      tempBox.setFromCenterAndSize(position, new THREE.Vector3(1, 1, 1));
+
+      if (this.raycaster.ray.intersectsBox(tempBox)) {
+        const distance = position.distanceTo(camera.position);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = i;
+        }
+      }
+    }
+
+    // 先恢复之前高亮的所有体素
+    for (const idx of this.highlightedVoxelIndices) {
+      this.instancedMesh.setColorAt(idx, this.originalColors[idx]);
+    }
+    this.highlightedVoxelIndices.clear();
+
+    // 如果命中了体素，高亮周围一圈
+    if (closestIndex !== -1) {
+      const centerPos = this.currentPositions[closestIndex];
+
+      // 找到中心点周围半径内的所有体素
+      for (let i = 0; i < this.voxels.length; i++) {
+        const pos = this.currentPositions[i];
+        const distance = pos.distanceTo(centerPos);
+
+        if (distance <= this.selectionRadius) {
+          this.highlightedVoxelIndices.add(i);
+          // 高亮体素（黄色）- 只有拆解状态才能真正高亮
+          if (this.state === 'dismantling') {
+            const highlightColor = new THREE.Color(0xffff00);
+            this.instancedMesh.setColorAt(i, highlightColor);
+          }
+        }
+      }
+
+      this.instancedMesh.instanceColor!.needsUpdate = true;
+
+      // 显示指针光标在命中位置
+      if (this.pointerCursor) {
+        this.pointerCursor.position.copy(centerPos);
+        // 让光标面向相机
+        this.pointerCursor.lookAt(camera.position);
+        this.pointerCursor.visible = true;
+      }
+    } else {
+      // 没有命中体素，隐藏光标
+      if (this.pointerCursor) {
+        this.pointerCursor.visible = false;
+      }
+    }
+
+    if (this.highlightedVoxelIndices.size > 0) {
+      this.instancedMesh.instanceColor!.needsUpdate = true;
+    }
+  }
+
+  /**
+   * 隐藏指针光标
+   */
+  hidePointer(): void {
+    if (this.pointerCursor) {
+      this.pointerCursor.visible = false;
+    }
+
+    // 恢复高亮体素的颜色
+    if (this.highlightedVoxelIndices.size > 0 && this.instancedMesh) {
+      for (const idx of this.highlightedVoxelIndices) {
+        this.instancedMesh.setColorAt(idx, this.originalColors[idx]);
+      }
+      this.instancedMesh.instanceColor!.needsUpdate = true;
+      this.highlightedVoxelIndices.clear();
+    }
+  }
+
+  /**
+   * 选中当前高亮的体素（从比1切换到握拳时调用）
+   */
+  selectPointed(): void {
+    if (this.highlightedVoxelIndices.size > 0) {
+      // 复制高亮的体素到选中集合
+      this.selectedVoxelIndices = new Set(this.highlightedVoxelIndices);
+      // 隐藏指针光标
+      if (this.pointerCursor) {
+        this.pointerCursor.visible = false;
+      }
+    }
+  }
+
+  // === 手势抓取交互功能 ===
+
+  /**
    * 开始抓取体素（手势捏合时调用）
    * @param camera 相机对象
    * @param handX 手的2D屏幕X坐标（-1到1）
@@ -380,35 +554,77 @@ export class VoxelEngine {
    * @param handZ 手的深度（0到1，0是近，1是远）
    */
   startGrab(camera: THREE.Camera, handX: number, handY: number, handZ: number): boolean {
-    if (this.state !== 'dismantling' || !this.instancedMesh) return false;
+    if (!this.instancedMesh) return false;
 
-    // 将2D手部坐标转换为3D世界坐标
-    const handPos = new THREE.Vector3(handX, handY, 0.5);
-    handPos.unproject(camera);
-
-    // 计算从相机到手部位置的方向
-    const direction = handPos.clone().sub(camera.position).normalize();
-
-    // 使用handZ来确定抓取点的深度（距离相机的距离）
-    const grabDistance = 15 + handZ * 30; // 15到45之间
-    this.grabCenter.copy(camera.position).addScaledVector(direction, grabDistance);
-
-    // 找到抓取中心附近的所有体素（半径5个单位内）
-    const grabRadius = 5;
     this.grabbedIndices.clear();
 
-    for (let i = 0; i < this.voxels.length; i++) {
-      const pos = this.currentPositions[i];
-      const distance = pos.distanceTo(this.grabCenter);
+    // 如果有选中的体素，抓取这一坨体素
+    if (this.selectedVoxelIndices.size > 0) {
+      // 只有在拆解状态下才能真正抓取
+      if (this.state === 'dismantling') {
+        this.grabbedIndices = new Set(this.selectedVoxelIndices);
 
-      if (distance < grabRadius) {
-        this.grabbedIndices.add(i);
+        // 计算选中体素的中心位置
+        let centerX = 0, centerY = 0, centerZ = 0;
+        for (const idx of this.selectedVoxelIndices) {
+          const pos = this.currentPositions[idx];
+          centerX += pos.x;
+          centerY += pos.y;
+          centerZ += pos.z;
+        }
+        const count = this.selectedVoxelIndices.size;
+        this.grabCenter.set(centerX / count, centerY / count, centerZ / count);
+
+        // 恢复选中体素的颜色
+        for (const idx of this.selectedVoxelIndices) {
+          this.instancedMesh.setColorAt(idx, this.originalColors[idx]);
+        }
+        this.instancedMesh.instanceColor!.needsUpdate = true;
+        this.selectedVoxelIndices.clear();
+      } else {
+        // 不在拆解状态，清空选中但不抓取
+        this.selectedVoxelIndices.clear();
+        return false;
+      }
+    } else {
+      // 否则使用原来的区域抓取逻辑
+      // 只有在拆解状态下才能抓取
+      if (this.state !== 'dismantling') return false;
+
+      // 将2D手部坐标转换为3D世界坐标
+      const handPos = new THREE.Vector3(handX, handY, 0.5);
+      handPos.unproject(camera);
+
+      // 计算从相机到手部位置的方向
+      const direction = handPos.clone().sub(camera.position).normalize();
+
+      // 使用handZ来确定抓取点的深度（距离相机的距离）
+      const grabDistance = 15 + handZ * 30; // 15到45之间
+      this.grabCenter.copy(camera.position).addScaledVector(direction, grabDistance);
+
+      // 找到抓取中心附近的所有体素（半径5个单位内）
+      const grabRadius = 5;
+
+      for (let i = 0; i < this.voxels.length; i++) {
+        const pos = this.currentPositions[i];
+        const distance = pos.distanceTo(this.grabCenter);
+
+        if (distance < grabRadius) {
+          this.grabbedIndices.add(i);
+        }
       }
     }
 
     if (this.grabbedIndices.size > 0) {
       this.lastGrabPosition.copy(this.grabCenter);
       this.grabVelocity.set(0, 0, 0);
+
+      // 显示抓取光标
+      if (this.grabCursor) {
+        this.grabCursor.position.copy(this.grabCenter);
+        this.grabCursor.visible = true;
+      }
+
       return true;
     }
 
@@ -453,6 +669,11 @@ export class VoxelEngine {
 
     this.lastGrabPosition.copy(this.grabCenter);
     this.grabCenter.copy(newGrabCenter);
+
+    // 更新光标位置
+    if (this.grabCursor) {
+      this.grabCursor.position.copy(this.grabCenter);
+    }
   }
 
   /**
@@ -479,6 +700,11 @@ export class VoxelEngine {
     }
 
     this.grabbedIndices.clear();
+
+    // 隐藏抓取光标
+    if (this.grabCursor) {
+      this.grabCursor.visible = false;
+    }
   }
 
   dispose() {
@@ -491,5 +717,40 @@ export class VoxelEngine {
         this.instancedMesh.material.dispose();
       }
     }
+
+    // 清理抓取光标
+    if (this.grabCursor) {
+      this.scene.remove(this.grabCursor);
+      this.grabCursor.geometry.dispose();
+      if (Array.isArray(this.grabCursor.material)) {
+        this.grabCursor.material.forEach(m => m.dispose());
+      } else {
+        this.grabCursor.material.dispose();
+      }
+    }
+
+    // 清理指针光标
+    if (this.pointerCursor) {
+      this.scene.remove(this.pointerCursor);
+      this.pointerCursor.geometry.dispose();
+      if (Array.isArray(this.pointerCursor.material)) {
+        this.pointerCursor.material.forEach(m => m.dispose());
+      } else {
+        this.pointerCursor.material.dispose();
+      }
+    }
+  }
+
+  // 获取体素网格（用于涂色模式的raycasting）
+  getVoxelMesh(): THREE.InstancedMesh | null {
+    return this.instancedMesh;
+  }
+
+  // 通过instanceId获取体素数据（返回原始坐标，没有Y偏移）
+  getVoxelByInstanceId(instanceId: number): Voxel | null {
+    if (instanceId >= 0 && instanceId < this.originalVoxels.length) {
+      return this.originalVoxels[instanceId];
+    }
+    return null;
   }
 }

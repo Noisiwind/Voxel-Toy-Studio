@@ -269,243 +269,7 @@ function createLiL9(): Voxel[] {
   return voxels;
 }
 
-// 理想MEGA - 银灰色方正MPV（超详细版，根据参考图重制 ~900体素）
-function createLiMega(): Voxel[] {
-  const voxels: Voxel[] = [];
-
-  // 精细色彩 - 根据参考图调整
-  const bodyBase = '#787878';          // 银灰基础色
-  const bodyColor = '#888888';         // 主体银灰
-  const bodyLight = '#9A9A9A';         // 亮银灰
-  const bodyDark = '#606060';          // 深银灰
-  const bodyShadow = '#484848';        // 阴影
-  const roofBlack = '#1A1A1A';         // 超大黑色车顶（全景天窗）
-  const roofDark = '#0A0A0A';          // 车顶最暗部分
-  const windowColor = '#252525';       // 深色车窗
-  const windowDark = '#151515';        // 车窗最暗部分
-  const wheelColor = '#0A0A0A';        // 黑色轮胎
-  const wheelRim = '#404040';          // 深灰轮毂
-  const lightColor = '#FFFFFF';        // 白色灯
-  const grillColor = '#101010';        // 黑色格栅
-  const megaText = '#E0E0E0';          // MEGA字样（浅色）
-
-  // === 底盘和轮胎基础 (y=-1 到 y=0) ===
-  for (let x = -9; x <= 9; x++) {
-    for (let z = -4; z <= 4; z++) {
-      if (Math.abs(z) <= 3) {
-        voxels.push({ x, y: -1, z, color: bodyShadow });
-        voxels.push({ x, y: 0, z, color: bodyDark });
-      }
-    }
-  }
-
-  // === 车轮 - 4个大轮子 ===
-  // 前左轮 (x=-7附近, z=-4)
-  for (let x = -8; x <= -6; x++) {
-    for (let z = -5; z <= -4; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (z === -5 || y === 0) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: wheelRim });
-        }
-      }
-    }
-  }
-  // 前右轮 (x=-7附近, z=4)
-  for (let x = -8; x <= -6; x++) {
-    for (let z = 4; z <= 5; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (z === 5 || y === 0) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: wheelRim });
-        }
-      }
-    }
-  }
-  // 后左轮 (x=7附近, z=-4)
-  for (let x = 6; x <= 8; x++) {
-    for (let z = -5; z <= -4; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (z === -5 || y === 0) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: wheelRim });
-        }
-      }
-    }
-  }
-  // 后右轮 (x=7附近, z=4)
-  for (let x = 6; x <= 8; x++) {
-    for (let z = 4; z <= 5; z++) {
-      for (let y = 0; y <= 2; y++) {
-        if (z === 5 || y === 0) {
-          voxels.push({ x, y, z, color: wheelColor });
-        } else {
-          voxels.push({ x, y, z, color: wheelRim });
-        }
-      }
-    }
-  }
-
-  // === 车身下部 (y=1-2) - 银灰色车体 ===
-  for (let y = 1; y <= 2; y++) {
-    for (let x = -9; x <= 9; x++) {
-      for (let z = -3; z <= 3; z++) {
-        if (Math.abs(z) === 3) {
-          voxels.push({ x, y, z, color: bodyBase });
-        } else {
-          voxels.push({ x, y, z, color: y === 1 ? bodyDark : bodyColor });
-        }
-      }
-    }
-  }
-
-  // === 车身中部 (y=3-5) - 主车体+侧窗 ===
-  for (let y = 3; y <= 5; y++) {
-    for (let x = -9; x <= 9; x++) {
-      for (let z = -3; z <= 3; z++) {
-        // 侧窗区域 (左右两侧，中段)
-        if (Math.abs(z) === 3 && x >= -5 && x <= 7) {
-          // 窗户玻璃
-          if (y >= 4) {
-            voxels.push({ x, y, z, color: windowColor });
-          } else {
-            voxels.push({ x, y, z, color: bodyColor });
-          }
-        }
-        // A柱、B柱、C柱区域（深色）
-        else if (Math.abs(z) === 3 && (x === -6 || x === -3 || x === 2 || x === 8)) {
-          voxels.push({ x, y, z, color: roofBlack });
-        }
-        // 车门区域
-        else if (Math.abs(z) === 3) {
-          voxels.push({ x, y, z, color: bodyColor });
-        }
-        // 内部填充
-        else {
-          voxels.push({ x, y, z, color: bodyLight });
-        }
-      }
-    }
-  }
-
-  // === 车顶 (y=6-8) - 标志性超大黑色车顶！===
-  for (let y = 6; y <= 8; y++) {
-    for (let x = -8; x <= 8; x++) {
-      for (let z = -3; z <= 3; z++) {
-        if (y === 6) {
-          // 车顶边缘还是车身色
-          if (Math.abs(z) === 3 || x === -8 || x === 8) {
-            voxels.push({ x, y, z, color: bodyDark });
-          } else {
-            // 开始黑色车顶
-            voxels.push({ x, y, z, color: roofBlack });
-          }
-        } else if (y === 7) {
-          // 大面积黑色全景天窗
-          if (x >= -7 && x <= 7 && Math.abs(z) <= 2) {
-            voxels.push({ x, y, z, color: roofBlack });
-          }
-        } else if (y === 8) {
-          // 车顶最高点，更暗
-          if (x >= -6 && x <= 6 && Math.abs(z) <= 2) {
-            voxels.push({ x, y, z, color: roofDark });
-          }
-        }
-      }
-    }
-  }
-
-  // === 前脸 (x=-10到-11) - MEGA特征前脸 ===
-  // 前保险杠
-  for (let z = -3; z <= 3; z++) {
-    for (let y = 1; y <= 2; y++) {
-      voxels.push({ x: -10, y, z, color: bodyShadow });
-    }
-  }
-
-  // 前格栅区域 - 黑色格栅
-  for (let z = -2; z <= 2; z++) {
-    for (let y = 2; y <= 3; y++) {
-      voxels.push({ x: -10, y, z, color: grillColor });
-    }
-  }
-
-  // "MEGA"标识区域 - 在前格栅上
-  for (let z = -1; z <= 1; z++) {
-    voxels.push({ x: -10, y: 3, z, color: megaText });
-  }
-
-  // 前大灯（左右两侧）
-  voxels.push({ x: -10, y: 3, z: -3, color: lightColor });
-  voxels.push({ x: -10, y: 3, z: 3, color: lightColor });
-  voxels.push({ x: -10, y: 2, z: -3, color: lightColor });
-  voxels.push({ x: -10, y: 2, z: 3, color: lightColor });
-
-  // 引擎盖
-  for (let z = -2; z <= 2; z++) {
-    for (let y = 4; y <= 5; y++) {
-      voxels.push({ x: -10, y, z, color: bodyLight });
-      voxels.push({ x: -9, y, z, color: bodyColor });
-    }
-  }
-
-  // 前挡风玻璃
-  for (let z = -2; z <= 2; z++) {
-    for (let y = 6; y <= 7; y++) {
-      voxels.push({ x: -9, y, z, color: windowColor });
-      if (y === 7) {
-        voxels.push({ x: -8, y, z, color: windowDark });
-      }
-    }
-  }
-
-  // === 后部 (x=10到11) ===
-  // 后保险杠
-  for (let z = -3; z <= 3; z++) {
-    for (let y = 1; y <= 2; y++) {
-      voxels.push({ x: 10, y, z, color: bodyShadow });
-    }
-  }
-
-  // 后尾灯（贯穿式）
-  for (let z = -3; z <= 3; z++) {
-    for (let y = 3; y <= 4; y++) {
-      if (Math.abs(z) >= 2) {
-        voxels.push({ x: 10, y, z, color: '#CC2222' }); // 红色尾灯
-      } else {
-        voxels.push({ x: 10, y, z, color: '#882222' });
-      }
-    }
-  }
-
-  // 后车窗
-  for (let z = -2; z <= 2; z++) {
-    for (let y = 5; y <= 6; y++) {
-      voxels.push({ x: 10, y, z, color: windowColor });
-      voxels.push({ x: 9, y, z, color: windowDark });
-    }
-  }
-
-  // === 车门把手 ===
-  for (let x = -4; x <= 6; x += 5) {
-    voxels.push({ x, y: 4, z: 4, color: bodyShadow });
-    voxels.push({ x, y: 4, z: -4, color: bodyShadow });
-  }
-
-  // === 侧面腰线 ===
-  for (let x = -8; x <= 8; x++) {
-    voxels.push({ x, y: 3, z: 4, color: bodyDark });
-    voxels.push({ x, y: 3, z: -4, color: bodyDark });
-  }
-
-  return voxels;
-}
-
 export const presetLiL9 = createLiL9();
-export const presetLiMega = createLiMega();
 
 // 预设模型：可爱的猫
 export const presetCat: Voxel[] = [
@@ -762,10 +526,580 @@ export const presetHouse: Voxel[] = [
   {"x": 0, "y": 5, "z": 0, "color": "#8B0000"},
 ];
 
+// 预设模型：熊猫 (~600体素)
+function createPanda(): Voxel[] {
+  const voxels: Voxel[] = [];
+
+  const white = '#FFFFFF';
+  const black = '#000000';
+  const darkGray = '#1A1A1A';
+  const pink = '#FFB6C1';
+
+  // === 身体 (y=0-4) - 白色，圆润 ===
+  for (let y = 0; y <= 4; y++) {
+    for (let x = -3; x <= 3; x++) {
+      for (let z = -2; z <= 2; z++) {
+        const dist = Math.sqrt(x*x/1.5 + z*z);
+        if (dist <= 3.5) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+
+  // === 头部 (y=5-8) - 白色圆形 ===
+  for (let y = 5; y <= 8; y++) {
+    for (let x = -3; x <= 3; x++) {
+      for (let z = -2; z <= 2; z++) {
+        const dist = Math.sqrt(x*x + z*z);
+        const radius = y === 5 ? 3.2 : y === 6 ? 3.5 : y === 7 ? 3.2 : 2.5;
+        if (dist <= radius) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+
+  // === 黑色耳朵 (y=8-10) ===
+  // 左耳
+  for (let y = 8; y <= 10; y++) {
+    for (let x = -3; x <= -2; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: black });
+      }
+    }
+  }
+  // 右耳
+  for (let y = 8; y <= 10; y++) {
+    for (let x = 2; x <= 3; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: black });
+      }
+    }
+  }
+
+  // === 黑色眼圈 (y=6-7) ===
+  // 左眼圈
+  for (let x = -3; x <= -1; x++) {
+    for (let y = 6; y <= 7; y++) {
+      voxels.push({ x, y, z: 2, color: black });
+      voxels.push({ x, y, z: 3, color: black });
+    }
+  }
+  // 右眼圈
+  for (let x = 1; x <= 3; x++) {
+    for (let y = 6; y <= 7; y++) {
+      voxels.push({ x, y, z: 2, color: black });
+      voxels.push({ x, y, z: 3, color: black });
+    }
+  }
+
+  // === 黑色眼睛 ===
+  voxels.push({ x: -2, y: 7, z: 3, color: darkGray });
+  voxels.push({ x: 2, y: 7, z: 3, color: darkGray });
+
+  // === 鼻子和嘴巴 ===
+  voxels.push({ x: 0, y: 6, z: 3, color: black });
+  voxels.push({ x: -1, y: 5, z: 3, color: black });
+  voxels.push({ x: 0, y: 5, z: 3, color: black });
+  voxels.push({ x: 1, y: 5, z: 3, color: black });
+
+  // === 黑色前臂 (y=2-4) ===
+  // 左臂
+  for (let y = 2; y <= 4; y++) {
+    for (let x = -4; x <= -3; x++) {
+      for (let z = -1; z <= 1; z++) {
+        voxels.push({ x, y, z, color: black });
+      }
+    }
+  }
+  // 右臂
+  for (let y = 2; y <= 4; y++) {
+    for (let x = 3; x <= 4; x++) {
+      for (let z = -1; z <= 1; z++) {
+        voxels.push({ x, y, z, color: black });
+      }
+    }
+  }
+
+  // === 黑色腿 (y=0-2) ===
+  // 左腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = -3; x <= -2; x++) {
+      for (let z = 2; z <= 3; z++) {
+        voxels.push({ x, y, z, color: black });
+      }
+    }
+  }
+  // 右腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = 2; x <= 3; x++) {
+      for (let z = 2; z <= 3; z++) {
+        voxels.push({ x, y, z, color: black });
+      }
+    }
+  }
+
+  return voxels;
+}
+
+// 预设模型：兔子 (~550体素)
+function createRabbit(): Voxel[] {
+  const voxels: Voxel[] = [];
+
+  const white = '#FAFAFA';
+  const lightGray = '#E5E5E5';
+  const pink = '#FFB6C1';
+  const darkPink = '#FF69B4';
+  const black = '#000000';
+
+  // === 身体 (y=0-3) ===
+  for (let y = 0; y <= 3; y++) {
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -2; z <= 2; z++) {
+        const dist = Math.sqrt(x*x + z*z);
+        if (dist <= 2.5) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+
+  // === 头部 (y=4-7) ===
+  for (let y = 4; y <= 7; y++) {
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -2; z <= 2; z++) {
+        const dist = Math.sqrt(x*x + z*z);
+        const radius = y === 4 ? 2.8 : y === 5 ? 3.0 : y === 6 ? 2.8 : 2.2;
+        if (dist <= radius) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+
+  // === 长耳朵 (y=7-13) ===
+  // 左耳
+  for (let y = 7; y <= 13; y++) {
+    for (let x = -2; x <= -1; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: white });
+        // 耳朵内部粉色
+        if (z === -1 && x === -1 && y >= 8 && y <= 12) {
+          voxels.push({ x, y, z, color: pink });
+        }
+      }
+    }
+  }
+  // 右耳
+  for (let y = 7; y <= 13; y++) {
+    for (let x = 1; x <= 2; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: white });
+        // 耳朵内部粉色
+        if (z === -1 && x === 1 && y >= 8 && y <= 12) {
+          voxels.push({ x, y, z, color: pink });
+        }
+      }
+    }
+  }
+
+  // === 眼睛 (y=6) ===
+  voxels.push({ x: -2, y: 6, z: 2, color: black });
+  voxels.push({ x: -2, y: 7, z: 2, color: black });
+  voxels.push({ x: 2, y: 6, z: 2, color: black });
+  voxels.push({ x: 2, y: 7, z: 2, color: black });
+
+  // === 鼻子 (y=5) ===
+  voxels.push({ x: 0, y: 5, z: 3, color: darkPink });
+  voxels.push({ x: -1, y: 5, z: 3, color: pink });
+  voxels.push({ x: 1, y: 5, z: 3, color: pink });
+
+  // === 嘴巴 (y=4) ===
+  voxels.push({ x: 0, y: 4, z: 3, color: black });
+  voxels.push({ x: -1, y: 4, z: 2, color: black });
+  voxels.push({ x: 1, y: 4, z: 2, color: black });
+
+  // === 前腿 (y=0-2) ===
+  // 左前腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = -2; x <= -1; x++) {
+      voxels.push({ x, y, z: 2, color: white });
+    }
+  }
+  // 右前腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = 1; x <= 2; x++) {
+      voxels.push({ x, y, z: 2, color: white });
+    }
+  }
+
+  // === 后腿（大） (y=0-2) ===
+  // 左后腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = -3; x <= -2; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: lightGray });
+      }
+    }
+  }
+  // 右后腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = 2; x <= 3; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: lightGray });
+      }
+    }
+  }
+
+  // === 尾巴（小圆球） (y=1-2) ===
+  for (let x = -1; x <= 1; x++) {
+    for (let z = -3; z <= -2; z++) {
+      voxels.push({ x, y: 1, z, color: white });
+      voxels.push({ x, y: 2, z, color: white });
+    }
+  }
+
+  return voxels;
+}
+
+// 预设模型：狐狸 (~600体素)
+function createFox(): Voxel[] {
+  const voxels: Voxel[] = [];
+
+  const orange = '#FF8C42';
+  const darkOrange = '#E67E22';
+  const white = '#FFFFFF';
+  const black = '#000000';
+  const darkBrown = '#654321';
+
+  // === 身体 (y=0-4) - 橙色 ===
+  for (let y = 0; y <= 4; y++) {
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -3; z <= 1; z++) {
+        const dist = Math.sqrt(x*x/1.2 + z*z);
+        if (dist <= 3.0) {
+          voxels.push({ x, y, z, color: orange });
+        }
+      }
+    }
+  }
+
+  // 身体腹部白色
+  for (let y = 1; y <= 3; y++) {
+    for (let x = -1; x <= 1; x++) {
+      voxels.push({ x, y, z: 0, color: white });
+      voxels.push({ x, y, z: 1, color: white });
+    }
+  }
+
+  // === 头部 (y=5-8) - 橙色尖头 ===
+  for (let y = 5; y <= 8; y++) {
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -1; z <= 2; z++) {
+        const dist = Math.sqrt(x*x + (z-0.5)*(z-0.5));
+        const radius = y === 5 ? 2.8 : y === 6 ? 3.0 : y === 7 ? 2.5 : 2.0;
+        if (dist <= radius) {
+          voxels.push({ x, y, z, color: orange });
+        }
+      }
+    }
+  }
+
+  // 脸部白色区域
+  for (let y = 5; y <= 7; y++) {
+    for (let x = -1; x <= 1; x++) {
+      voxels.push({ x, y, z: 2, color: white });
+    }
+  }
+
+  // === 尖耳朵 (y=8-11) ===
+  // 左耳
+  for (let y = 8; y <= 11; y++) {
+    const size = 12 - y;
+    for (let x = -3; x <= -2; x++) {
+      for (let z = -1; z <= -1 + size; z++) {
+        voxels.push({ x, y, z, color: orange });
+        // 耳朵内部白色
+        if (x === -2 && z === 0 && y <= 10) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+  // 右耳
+  for (let y = 8; y <= 11; y++) {
+    const size = 12 - y;
+    for (let x = 2; x <= 3; x++) {
+      for (let z = -1; z <= -1 + size; z++) {
+        voxels.push({ x, y, z, color: orange });
+        // 耳朵内部白色
+        if (x === 2 && z === 0 && y <= 10) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+  // 耳尖黑色
+  voxels.push({ x: -3, y: 11, z: -1, color: black });
+  voxels.push({ x: 3, y: 11, z: -1, color: black });
+
+  // === 眼睛 (y=7) ===
+  voxels.push({ x: -2, y: 7, z: 2, color: black });
+  voxels.push({ x: 2, y: 7, z: 2, color: black });
+  voxels.push({ x: -2, y: 7, z: 3, color: black });
+  voxels.push({ x: 2, y: 7, z: 3, color: black });
+
+  // === 鼻子和嘴巴 ===
+  voxels.push({ x: 0, y: 6, z: 3, color: black });
+  voxels.push({ x: 0, y: 5, z: 3, color: black });
+
+  // === 前腿 (y=0-3) ===
+  // 左前腿
+  for (let y = 0; y <= 3; y++) {
+    for (let x = -2; x <= -1; x++) {
+      voxels.push({ x, y, z: 1, color: darkOrange });
+      // 脚掌黑色
+      if (y === 0) {
+        voxels.push({ x, y, z: 1, color: black });
+      }
+    }
+  }
+  // 右前腿
+  for (let y = 0; y <= 3; y++) {
+    for (let x = 1; x <= 2; x++) {
+      voxels.push({ x, y, z: 1, color: darkOrange });
+      // 脚掌黑色
+      if (y === 0) {
+        voxels.push({ x, y, z: 1, color: black });
+      }
+    }
+  }
+
+  // === 后腿 (y=0-2) ===
+  // 左后腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = -2; x <= -1; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: darkOrange });
+        if (y === 0) {
+          voxels.push({ x, y, z, color: black });
+        }
+      }
+    }
+  }
+  // 右后腿
+  for (let y = 0; y <= 2; y++) {
+    for (let x = 1; x <= 2; x++) {
+      for (let z = -2; z <= -1; z++) {
+        voxels.push({ x, y, z, color: darkOrange });
+        if (y === 0) {
+          voxels.push({ x, y, z, color: black });
+        }
+      }
+    }
+  }
+
+  // === 蓬松尾巴 (y=1-5) ===
+  for (let y = 1; y <= 5; y++) {
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -4; z <= -3; z++) {
+        const dist = Math.sqrt(x*x + (z+3.5)*(z+3.5));
+        if (dist <= 2.5 + (5-y)*0.3) {
+          voxels.push({ x, y, z, color: orange });
+        }
+      }
+    }
+  }
+  // 尾巴尖端白色
+  for (let y = 4; y <= 5; y++) {
+    for (let x = -1; x <= 1; x++) {
+      voxels.push({ x, y, z: -4, color: white });
+    }
+  }
+
+  return voxels;
+}
+
+// 预设模型：迪士尼城堡 (~700体素)
+function createDisneyCastle(): Voxel[] {
+  const voxels: Voxel[] = [];
+
+  const stoneGray = '#A0A0A0';
+  const darkGray = '#707070';
+  const blue = '#4169E1';
+  const darkBlue = '#2B4C8C';
+  const gold = '#FFD700';
+  const red = '#DC143C';
+  const white = '#F0F0F0';
+
+  // === 主塔基座 (y=0-3) ===
+  for (let y = 0; y <= 3; y++) {
+    for (let x = -3; x <= 3; x++) {
+      for (let z = -3; z <= 3; z++) {
+        if (Math.abs(x) === 3 || Math.abs(z) === 3) {
+          voxels.push({ x, y, z, color: stoneGray });
+        }
+      }
+    }
+  }
+
+  // === 主塔墙体 (y=4-12) ===
+  for (let y = 4; y <= 12; y++) {
+    for (let x = -2; x <= 2; x++) {
+      for (let z = -2; z <= 2; z++) {
+        if (Math.abs(x) === 2 || Math.abs(z) === 2) {
+          voxels.push({ x, y, z, color: y % 2 === 0 ? stoneGray : white });
+        }
+      }
+    }
+  }
+
+  // 主塔窗户
+  for (let y = 6; y <= 10; y += 2) {
+    voxels.push({ x: 0, y, z: 2, color: darkBlue });
+    voxels.push({ x: 2, y, z: 0, color: darkBlue });
+    voxels.push({ x: -2, y, z: 0, color: darkBlue });
+  }
+
+  // === 主塔屋顶 (y=13-16) - 蓝色锥形 ===
+  for (let y = 13; y <= 16; y++) {
+    const size = 17 - y;
+    for (let x = -size; x <= size; x++) {
+      for (let z = -size; z <= size; z++) {
+        const dist = Math.sqrt(x*x + z*z);
+        if (dist <= size) {
+          voxels.push({ x, y, z, color: blue });
+        }
+      }
+    }
+  }
+  // 屋顶尖端金色
+  voxels.push({ x: 0, y: 17, z: 0, color: gold });
+  voxels.push({ x: 0, y: 18, z: 0, color: gold });
+
+  // === 左侧塔 (y=0-8) ===
+  for (let y = 0; y <= 8; y++) {
+    for (let x = -6; x <= -4; x++) {
+      for (let z = -2; z <= 0; z++) {
+        if (x === -6 || x === -4 || z === -2 || z === 0) {
+          voxels.push({ x, y, z, color: darkGray });
+        }
+      }
+    }
+  }
+  // 左塔屋顶
+  for (let y = 9; y <= 11; y++) {
+    const size = 12 - y;
+    for (let x = -5 - size; x <= -5 + size; x++) {
+      for (let z = -1 - size; z <= -1 + size; z++) {
+        voxels.push({ x, y, z, color: red });
+      }
+    }
+  }
+  voxels.push({ x: -5, y: 12, z: -1, color: gold });
+
+  // === 右侧塔 (y=0-8) ===
+  for (let y = 0; y <= 8; y++) {
+    for (let x = 4; x <= 6; x++) {
+      for (let z = -2; z <= 0; z++) {
+        if (x === 6 || x === 4 || z === -2 || z === 0) {
+          voxels.push({ x, y, z, color: darkGray });
+        }
+      }
+    }
+  }
+  // 右塔屋顶
+  for (let y = 9; y <= 11; y++) {
+    const size = 12 - y;
+    for (let x = 5 - size; x <= 5 + size; x++) {
+      for (let z = -1 - size; z <= -1 + size; z++) {
+        voxels.push({ x, y, z, color: red });
+      }
+    }
+  }
+  voxels.push({ x: 5, y: 12, z: -1, color: gold });
+
+  // === 前方小塔 (左) (y=0-6) ===
+  for (let y = 0; y <= 6; y++) {
+    for (let x = -5; x <= -4; x++) {
+      for (let z = 2; z <= 3; z++) {
+        if (x === -5 || x === -4 || z === 2 || z === 3) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+  // 前左塔屋顶
+  for (let y = 7; y <= 9; y++) {
+    const size = 10 - y;
+    voxels.push({ x: -4.5, y, z: 2.5, color: blue });
+    for (let dx = -size; dx <= size; dx++) {
+      for (let dz = -size; dz <= size; dz++) {
+        voxels.push({ x: -4 + dx, y, z: 2 + dz, color: blue });
+      }
+    }
+  }
+
+  // === 前方小塔 (右) (y=0-6) ===
+  for (let y = 0; y <= 6; y++) {
+    for (let x = 4; x <= 5; x++) {
+      for (let z = 2; z <= 3; z++) {
+        if (x === 5 || x === 4 || z === 2 || z === 3) {
+          voxels.push({ x, y, z, color: white });
+        }
+      }
+    }
+  }
+  // 前右塔屋顶
+  for (let y = 7; y <= 9; y++) {
+    const size = 10 - y;
+    for (let dx = -size; dx <= size; dx++) {
+      for (let dz = -size; dz <= size; dz++) {
+        voxels.push({ x: 4 + dx, y, z: 2 + dz, color: blue });
+      }
+    }
+  }
+
+  // === 大门 (y=1-3) ===
+  for (let y = 1; y <= 3; y++) {
+    voxels.push({ x: -1, y, z: 3, color: darkGray });
+    voxels.push({ x: 0, y, z: 3, color: '#8B4513' });
+    voxels.push({ x: 1, y, z: 3, color: darkGray });
+  }
+  voxels.push({ x: 0, y: 4, z: 3, color: darkGray });
+
+  // === 连接墙 (y=1-4) ===
+  for (let y = 1; y <= 4; y++) {
+    for (let x = -4; x <= -3; x++) {
+      voxels.push({ x, y, z: 3, color: stoneGray });
+    }
+    for (let x = 3; x <= 4; x++) {
+      voxels.push({ x, y, z: 3, color: stoneGray });
+    }
+  }
+
+  return voxels;
+}
+
+export const presetPanda = createPanda();
+export const presetRabbit = createRabbit();
+export const presetFox = createFox();
+export const presetDisneyCastle = createDisneyCastle();
+
+// 预设模型：理想同学 - 从外部JSON加载（新版本）
+export const presetLiTongxue: Voxel[] = [];
+
+// 预设模型：MEGA - 从外部JSON加载
+export const presetMega: Voxel[] = [];
+
 export const presets = [
   { name: '理想 L9', data: presetLiL9 },
-  { name: '理想 MEGA', data: presetLiMega },
-  { name: '🐱 Cat', data: presetCat },
+  { name: '理想同学', data: presetLiTongxue, loadFrom: '/litongxue.json' },
+  { name: '🚗 Mega', data: presetMega, loadFrom: '/mega.json' },
+  { name: '🐼 熊猫', data: presetPanda },
+  { name: '🐰 兔子', data: presetRabbit },
+  { name: '🦊 狐狸', data: presetFox },
+  { name: '🏰 城堡', data: presetDisneyCastle },
   { name: '🦅 Eagle', data: presetEagle },
-  { name: '🏠 House', data: presetHouse },
 ];

@@ -1,7 +1,7 @@
 import { ButtonHTMLAttributes } from 'react';
 
 interface TactileButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'rose' | 'emerald' | 'sky' | 'amber' | 'li-primary';
+  variant?: 'rose' | 'emerald' | 'sky' | 'amber' | 'li-primary' | 'purple' | 'indigo';
   children: React.ReactNode;
 }
 
@@ -10,6 +10,8 @@ const variantStyles = {
   emerald: 'bg-emerald-500 hover:bg-emerald-600',
   sky: 'bg-sky-500 hover:bg-sky-600',
   amber: 'bg-amber-500 hover:bg-amber-600',
+  purple: 'bg-purple-600 hover:bg-purple-700',
+  indigo: 'bg-indigo-600 hover:bg-indigo-700',
   'li-primary': 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700', // 理想品牌主色
 };
 

@@ -308,129 +308,14 @@ function expandCompressedFormat(compressedData: any): Voxel[] {
   return voxels;
 }
 
-// DeepSeek调用 - 优化提示词
-async function callDeepSeekAPI(apiKey: string, prompt: string, systemPrompt: string, settings: GenerationSettings): Promise<string> {
-  console.log('[DeepSeek] Starting request...');
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000); // 60秒超时
-
-  // 为DeepSeek添加特殊指令，确保只返回JSON
-  const enhancedSystemPrompt = `${systemPrompt}
-
-⚠️ CRITICAL FOR DEEPSEEK:
-- 直接返回JSON数组，不要有任何解释文字
-- 不要说"好的"、"我来生成"等开场白
-- 不要在JSON后面添加任何说明
-- 只返回纯JSON，格式：[{"x":0,"y":0,"z":0,"color":"#fff"}]
-- 如果想用压缩格式，返回：{"shapes":[...]}`;
-
-  try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: enhancedSystemPrompt },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 8192,
-        temperature: 0.7, // 降低温度，减少随意性
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('[DeepSeek] API error:', error);
-      throw new Error(`DeepSeek API error: ${error}`);
-    }
-
-    const data = await response.json();
-    console.log('[DeepSeek] Response received, length:', data.choices[0].message.content.length);
-    return data.choices[0].message.content;
-  } catch (error) {
-    clearTimeout(timeout);
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error('[DeepSeek] Request timeout after 60 seconds');
-      throw new Error('DeepSeek请求超时，请减少体素数量或稍后重试');
-    }
-    throw error;
-  }
-}
-
-// OpenAI API调用
-async function callOpenAIAPI(apiKey: string, prompt: string, systemPrompt: string, settings: GenerationSettings): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 8192,
-      temperature: 0.9,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${error}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-// Claude API调用
-async function callClaudeAPI(apiKey: string, prompt: string, systemPrompt: string, settings: GenerationSettings): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.9,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Claude API error: ${error}`);
-  }
-
-  const data = await response.json();
-  return data.content[0].text;
-}
-
-// Gemini API调用
+// Gemini API 调用
 async function callGeminiAPI(apiKey: string, prompt: string, systemPrompt: string, settings: GenerationSettings, imageBase64?: string): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey);
 
   const maxTokens = 8192;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-2.0-flash-exp',
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.9,
@@ -456,42 +341,23 @@ async function callGeminiAPI(apiKey: string, prompt: string, systemPrompt: strin
   return response.text();
 }
 
-// 主生成函数 - 支持多个AI服务商
+// 主生成函数 - 只使用 Gemini
 export async function generateVoxelModel(
   apiKey: string,
   prompt: string,
   settings: GenerationSettings,
-  imageBase64?: string,
-  provider: string = 'deepseek'
+  imageBase64?: string
 ): Promise<Voxel[]> {
   if (!apiKey) {
-    throw new Error(`${provider} API key is required`);
+    throw new Error('Gemini API key is required');
   }
 
   const systemPrompt = buildSystemPrompt(settings);
   const userPrompt = prompt || 'Create a voxel model';
 
-  console.log(`Calling ${provider} API...`);
+  console.log('Calling Gemini API...');
 
-  let aiResponse: string;
-
-  switch (provider) {
-    case 'deepseek':
-      // DeepSeek也支持图片，但暂时只用文本
-      aiResponse = await callDeepSeekAPI(apiKey, userPrompt, systemPrompt, settings);
-      break;
-    case 'openai':
-      aiResponse = await callOpenAIAPI(apiKey, userPrompt, systemPrompt, settings);
-      break;
-    case 'claude':
-      aiResponse = await callClaudeAPI(apiKey, userPrompt, systemPrompt, settings);
-      break;
-    case 'gemini':
-      aiResponse = await callGeminiAPI(apiKey, userPrompt, systemPrompt, settings, imageBase64);
-      break;
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
-  }
+  const aiResponse = await callGeminiAPI(apiKey, userPrompt, systemPrompt, settings, imageBase64);
 
   console.log('AI Response length:', aiResponse.length);
   console.log('AI Response preview (first 500 chars):', aiResponse.substring(0, 500));
@@ -601,7 +467,7 @@ export async function generateVoxelModel(
   if (!jsonMatch) {
     console.error('Failed to find JSON in response. Full response:', aiResponse);
     console.error('Cleaned response:', cleanedResponse);
-    throw new Error('AI没有返回有效的JSON格式。DeepSeek可能返回了解释文字，请尝试使用其他AI服务（Claude、OpenAI或Gemini）。');
+    throw new Error('AI没有返回有效的JSON格式。请检查API响应或稍后重试。');
   }
 
   let jsonString = jsonMatch[0];

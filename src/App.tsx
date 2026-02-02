@@ -40,7 +40,6 @@ function App() {
   const [isPaintMode, setIsPaintMode] = useState(false);
   const [paintColor, setPaintColor] = useState('#3b82f6');
   const [isCounterExpanded, setIsCounterExpanded] = useState(true); // 计数器展开状态
-  const [apiProvider, setApiProvider] = useState<string>('deepseek'); // 默认服务商
   const engineRef = useRef<VoxelEngine | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
@@ -48,12 +47,8 @@ function App() {
   // 从 localStorage 加载 API key、历史记录，并加载默认预设模型
   useEffect(() => {
     const savedKey = localStorage.getItem('ai_api_key');
-    const savedProvider = localStorage.getItem('ai_provider');
     if (savedKey) {
       setApiKey(savedKey);
-    }
-    if (savedProvider) {
-      setApiProvider(savedProvider);
     }
 
     // 尝试从localStorage加载保存的历史记录
@@ -91,11 +86,6 @@ function App() {
     // 保存当前历史索引
     localStorage.setItem('voxel_history_index', historyIndex.toString());
   }, [voxelHistory, historyIndex]);
-
-  // 保存选中的AI服务商到localStorage
-  useEffect(() => {
-    localStorage.setItem('ai_provider', apiProvider);
-  }, [apiProvider]);
 
   // 更新voxels并添加到历史记录
   const updateVoxelsWithHistory = useCallback((newVoxels: Voxel[]) => {
@@ -149,7 +139,7 @@ function App() {
     // AI生成功能需要API key，但如果用户只想玩预设模型则不需要
     setIsLoading(true);
     try {
-      const newVoxels = await generateVoxelModel(apiKey, prompt, settings, image, apiProvider);
+      const newVoxels = await generateVoxelModel(apiKey, prompt, settings, image);
       updateVoxelsWithHistory(newVoxels);
       setIsModalOpen(false);
     } catch (error) {
@@ -199,7 +189,6 @@ function App() {
 
   const saveApiKey = () => {
     localStorage.setItem('ai_api_key', apiKey);
-    // apiProvider的保存已经通过useEffect自动处理
     setShowApiInput(false);
   };
 
@@ -553,35 +542,15 @@ function App() {
               不填也可以关闭此对话框。
             </p>
 
-            {/* 服务商选择 */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">选择服务商</label>
-              <select
-                value={apiProvider}
-                onChange={(e) => setApiProvider(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-2xl focus:border-amber-500 focus:outline-none"
-              >
-                <option value="deepseek">DeepSeek</option>
-                <option value="gemini">Google Gemini</option>
-                <option value="openai">OpenAI ChatGPT</option>
-                <option value="claude">Anthropic Claude</option>
-              </select>
-            </div>
-
+            {/* Gemini API Key */}
             <p className="text-sm text-gray-500 mb-2">
-              {apiProvider === 'deepseek' && '获取API key: '}<a
-                href={apiProvider === 'deepseek' ? 'https://platform.deepseek.com/' :
-                     apiProvider === 'gemini' ? 'https://makersuite.google.com/app/apikey' :
-                     apiProvider === 'openai' ? 'https://platform.openai.com/api-keys' :
-                     'https://console.anthropic.com/'}
+              获取API key: <a
+                href="https://makersuite.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sky-500 hover:underline"
               >
-                {apiProvider === 'deepseek' ? 'DeepSeek Platform' :
-                 apiProvider === 'gemini' ? 'Google AI Studio' :
-                 apiProvider === 'openai' ? 'OpenAI Platform' :
-                 'Anthropic Console'}
+                Google AI Studio
               </a>
             </p>
 
@@ -589,7 +558,7 @@ function App() {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={`${apiProvider === 'deepseek' ? 'sk-...' : apiProvider === 'gemini' ? 'AIza...' : apiProvider === 'openai' ? 'sk-...' : 'sk-ant-...'} (可选)`}
+              placeholder="AIza... (可选)"
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-2xl focus:border-amber-500 focus:outline-none mb-4"
             />
             <div className="flex gap-3">

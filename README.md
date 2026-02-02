@@ -1,120 +1,97 @@
-# Voxel Toy Box
+# Voxel Toy Studio
 
-一个基于 React + Three.js 的 3D 体素创作应用，通过 AI 生成创意模型。
+一个结合 AI 和手势控制的体素艺术创作平台。
 
-## 特性
+## 🚀 快速开始
 
-- 🎨 **AI 驱动生成**: 使用 Gemini API 通过文字或图片生成 3D 体素模型
-- 🎮 **物理动画**: 支持模型拆解和平滑重组动画效果
-- 🖱️ **流畅交互**: OrbitControls 支持拖拽、旋转、缩放
-- 💎 **触感 UI**: 拟物化按钮设计，带有机械按压反馈
-- 🌫️ **无限工作室**: 雾化效果营造深邃的空间感
-- 📦 **高性能**: 使用 InstancedMesh 优化渲染性能
+### 方法一：双击启动（最简单）
+直接双击 `start-dev.bat` 文件，浏览器会自动打开 http://localhost:5173
 
-## 快速开始
-
-### 1. 安装依赖
-
-```bash
-npm install
-```
-
-### 2. 获取 Gemini API Key
-
-访问 [Google AI Studio](https://makersuite.google.com/app/apikey) 获取你的 API Key。
-
-### 3. 启动开发服务器
-
+### 方法二：命令行启动
 ```bash
 npm run dev
 ```
 
-应用将在 http://localhost:5173 启动。
+然后访问：http://localhost:5173
 
-### 4. 使用应用
+## 📦 功能特性
 
-1. 首次启动会要求输入 Gemini API Key
-2. 点击 "New Model" 创建新模型
-3. 输入文字描述或上传图片
-4. 等待 AI 生成模型
-5. 使用控制按钮进行交互：
-   - **Dismantle**: 物理拆解效果
-   - **Rebuild**: 平滑重组动画
-   - **Auto Rotate**: 自动旋转模型
-   - **Export**: 导出 JSON 数据
-   - **Share**: 复制到剪贴板
+- 🎨 4 个 AI 服务商支持（DeepSeek、OpenAI、Claude、Gemini）
+- 👋 MediaPipe 手势控制
+- 🎯 涂色模式
+- 📝 历史记录（撤销/重做）
+- 🎭 8 个高质量预设模型
+- 💾 自动保存到浏览器
 
-## 技术栈
+## 🛠️ 开发工作流程
 
-- **React** - UI 框架
-- **Three.js** - 3D 渲染引擎
-- **Tailwind CSS** - 样式框架
-- **Vite** - 构建工具
-- **TypeScript** - 类型安全
-- **Gemini API** - AI 模型生成
-- **Lucide React** - 图标库
+### 日常开发（推荐）
+1. 每次开机后双击 `start-dev.bat`
+2. 在浏览器中访问 http://localhost:5173
+3. 修改代码后自动刷新
+4. 关机后服务器会停止（正常现象）
 
-## 核心功能说明
+### 部署到线上（可选）
+1. 测试完成后：`git add .` 和 `git commit`
+2. 推送到 GitHub：`git push`
+3. Vercel 会自动部署最新版本
+4. 访问永久链接分享给别人
 
-### VoxelEngine
-
-核心引擎管理三种状态：
-
-- **Stable**: 模型静止，支持自动旋转
-- **Dismantling**: 物理拆解动画
-- **Rebuilding**: Lerp 平滑重组
-
-### 性能优化
-
-使用 `THREE.InstancedMesh` 渲染数百个方块，确保流畅的 60fps 体验。
-
-### UI 设计
-
-采用拟物化玩具风格，按钮具备 8px 深度边框，点击时产生真实的机械按压反馈。
-
-## 项目结构
+## 📁 项目结构
 
 ```
 voxel-toy-box/
 ├── src/
-│   ├── components/        # React 组件
-│   │   ├── Scene.tsx      # Three.js 场景
-│   │   ├── TactileButton.tsx
-│   │   └── PromptModal.tsx
-│   ├── engine/            # 3D 引擎
-│   │   └── VoxelEngine.ts # 核心引擎逻辑
-│   ├── utils/             # 工具函数
-│   │   └── gemini.ts      # AI API 集成
-│   ├── types/             # TypeScript 类型
-│   │   └── index.ts
-│   ├── App.tsx            # 主应用
-│   ├── main.tsx           # 入口文件
-│   └── index.css          # 全局样式
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── tailwind.config.js
+│   ├── components/       # React 组件
+│   ├── engine/          # 体素引擎
+│   ├── utils/           # AI API 和工具函数
+│   └── App.tsx          # 主应用
+├── public/              # 静态资源
+│   ├── mega.json        # Mega 模型
+│   └── litongxue.json   # 理想同学模型
+├── start-dev.bat        # 快速启动脚本
+└── DEPLOYMENT.md        # 部署文档
+
 ```
 
-## 构建生产版本
+## 🎮 手势控制
 
-```bash
-npm run build
-```
+### 左手
+- **握拳** → 拆解模型
+- **张开** → 重组模型
 
-构建产物在 `dist` 目录。
+### 右手
+- **比 1** → 指针选择模式
+- **握拳** → 抓取拖拽体素
+- **张开移动** → 旋转视角
+- **V 字上下** → 缩放
 
-## 预览生产版本
+## 🔑 API Keys
 
-```bash
-npm run preview
-```
+支持以下 AI 服务商（可选填）：
+- DeepSeek: https://platform.deepseek.com
+- OpenAI: https://platform.openai.com
+- Claude: https://console.anthropic.com
+- Gemini: https://aistudio.google.com
 
-## 许可证
+## 📝 技术栈
+
+- React 19 + TypeScript
+- Three.js + React Three Fiber
+- MediaPipe Hands
+- Vite
+- Tailwind CSS
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
 
 ISC
 
 ---
 
-由 Claude Code 生成 ❤️
+**开发者**: chiechunngai
+**AI 助手**: Claude Code (Sonnet 4.5)
+**最后更新**: 2025-02-02

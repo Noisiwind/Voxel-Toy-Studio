@@ -52,10 +52,14 @@ const translations: Translations = {
 
     // Presets
     'preset.quickStart': 'Quick Start',
-    'preset.car': '🚗 Car',
-    'preset.cat': '🐱 Cat',
-    'preset.eagle': '🦅 老鹰',
-    'preset.house': '🏠 House',
+    'preset.liTongxue': 'Li Tongxue',
+    'preset.liL9': 'Li L9',
+    'preset.mega': '🚗 Mega',
+    'preset.panda': '🐼 Panda',
+    'preset.rabbit': '🐰 Rabbit',
+    'preset.fox': '🦊 Fox',
+    'preset.castle': '🏰 Castle',
+    'preset.eagle': '🦅 Eagle',
 
     // API Key
     'api.title': 'Gemini API Key',
@@ -117,10 +121,14 @@ const translations: Translations = {
 
     // 预设
     'preset.quickStart': '快速开始',
-    'preset.car': '🚗 汽车',
-    'preset.cat': '🐱 猫咪',
+    'preset.liTongxue': '理想同学',
+    'preset.liL9': '理想 L9',
+    'preset.mega': '🚗 Mega',
+    'preset.panda': '🐼 熊猫',
+    'preset.rabbit': '🐰 兔子',
+    'preset.fox': '🦊 狐狸',
+    'preset.castle': '🏰 城堡',
     'preset.eagle': '🦅 老鹰',
-    'preset.house': '🏠 房子',
 
     // API 密钥
     'api.title': 'Gemini API 密钥',

@@ -523,9 +523,9 @@ function App() {
                 key={index}
                 onClick={() => handleLoadPreset(preset)}
                 className="px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-lg whitespace-nowrap"
-                title={`Load ${preset.name}`}
+                title={`Load ${t(preset.translationKey)}`}
               >
-                {preset.name}
+                {t(preset.translationKey)}
               </button>
             ))}
           </div>

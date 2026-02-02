@@ -1094,12 +1094,12 @@ export const presetLiTongxue: Voxel[] = [];
 export const presetMega: Voxel[] = [];
 
 export const presets = [
-  { name: '理想同学', data: presetLiTongxue, loadFrom: '/litongxue.json' },
-  { name: '理想 L9', data: presetLiL9, loadFrom: '/li-l9.json' },
-  { name: '🚗 Mega', data: presetMega, loadFrom: '/mega.json' },
-  { name: '🐼 熊猫', data: presetPanda },
-  { name: '🐰 兔子', data: presetRabbit },
-  { name: '🦊 狐狸', data: presetFox },
-  { name: '🏰 城堡', data: presetDisneyCastle },
-  { name: '🦅 老鹰', data: presetEagle },
+  { name: '理想同学', translationKey: 'preset.liTongxue', data: presetLiTongxue, loadFrom: '/litongxue.json' },
+  { name: '理想 L9', translationKey: 'preset.liL9', data: presetLiL9, loadFrom: '/li-l9.json' },
+  { name: '🚗 Mega', translationKey: 'preset.mega', data: presetMega, loadFrom: '/mega.json' },
+  { name: '🐼 熊猫', translationKey: 'preset.panda', data: presetPanda },
+  { name: '🐰 兔子', translationKey: 'preset.rabbit', data: presetRabbit },
+  { name: '🦊 狐狸', translationKey: 'preset.fox', data: presetFox },
+  { name: '🏰 城堡', translationKey: 'preset.castle', data: presetDisneyCastle },
+  { name: '🦅 老鹰', translationKey: 'preset.eagle', data: presetEagle },
 ];

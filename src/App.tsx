@@ -396,14 +396,6 @@ function App() {
           {t('btn.rebuild')}
         </TactileButton>
 
-        <TactileButton
-          variant={autoRotate ? 'amber' : 'sky'}
-          onClick={() => setAutoRotate(!autoRotate)}
-        >
-          <RotateCw className="inline mr-2" size={20} />
-          {t('btn.autoRotate')}
-        </TactileButton>
-
         {/* 手势控制按钮 */}
         <HandGestureControl
           onDismantle={handleDismantle}
@@ -480,6 +472,18 @@ function App() {
           title={t('tooltip.apiKey')}
         >
           <Key size={24} />
+        </button>
+
+        <button
+          onClick={() => setAutoRotate(!autoRotate)}
+          className={`p-3 rounded-full shadow-lg transition-colors ${
+            autoRotate
+              ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white hover:from-amber-500 hover:to-orange-600'
+              : 'bg-white hover:bg-gray-100 text-gray-700'
+          }`}
+          title={t('tooltip.autoRotate')}
+        >
+          <RotateCw size={24} />
         </button>
 
         <button

@@ -5,8 +5,8 @@ import { GenerationSettings } from '../components/PromptModal';
 function buildSystemPrompt(settings: GenerationSettings): string {
   const { style, colorStyle } = settings;
 
-  // 固定体素数量为最佳范围
-  const voxelCount = 350;
+  // 固定体素数量 - 降低到200避免JSON被截断
+  const voxelCount = 200;
 
   const styleGuides = {
     simple: 'Keep shapes basic but clearly recognizable with proper proportions',
@@ -150,32 +150,46 @@ CRITICAL: Think geometrically! Use spheres for round parts, cylinders for limbs,
 - **坐标对齐**：所有坐标 (x, y, z) 必须是整数
 - **中心定位**：物体中心（脚下或底座）必须位于 (x=0, z=0)
 - **地面锚定**：最底部坐标必须恰好在 y=0 处
-- **密度控制**：方块总数保持在 300-400 个之间（性能与美感平衡）
+- **密度控制**：方块总数约 ${voxelCount} 个（必须完整，不能缺失部分）
 
 # CONSTRUCTION METHOD (构建方法)
+⚠️ 重要：必须构建完整模型！按优先级从高到低：
+1. 腿/底座 → 2. 身体 → 3. 头部 → 4. 五官 → 5. 耳朵/尾巴
+
 使用"块状化"思维，从底部到顶部分层构建：
 
-Step 1: FOUNDATION (Y=0-2) - 地基
-- 使用 2x2 或 3x3 的块状脚部/底座
+Step 1: FOUNDATION (Y=0-2) - 地基 【必须】
+- 4条腿，每条腿用 2x2 的块（4个体素×2层）
 - 避免细棍状的腿，要有厚度感
 
-Step 2: MAIN BODY (Y=3-6) - 身体主体
-- 用多个体素组成厚实的身体块
+Step 2: MAIN BODY (Y=2-5) - 身体主体 【必须】
+- 用 4×3×3 的块状身体（约36个体素）
 - 不要空心，要有体积感
 - 身体应该比头部更大更宽
 
-Step 3: HEAD (Y=7-10) - 头部
+Step 3: HEAD (Y=6-8) - 头部 【必须】
+- 头部用 3×3×3 的块（约27个体素）
 - 头部占总高度的 1/4 到 1/3
-- 用 2x2 或 3x3 的块构建，不要单薄
 
-Step 4: FEATURES - 特征细节
-- 眼睛：可以用 1x1 的单体素（这是例外）
-- 鼻子、嘴巴：用 2-3 个体素组成小块
-- 耳朵、角：用 2x2 小块
+Step 4: FACIAL FEATURES - 五官 【必须】
+- 眼睛：2个体素（左右各1个）
+- 鼻子：1-2个体素
+- 嘴巴：可选
 
-Step 5: APPENDAGES - 附属物
-- 手臂、尾巴：用成组的体素，不要单线条
-- 装饰物：也要成块出现
+Step 5: EARS/TAIL - 耳朵和尾巴 【可选，如果体素够用】
+- 耳朵：左右各2-4个体素
+- 尾巴：5-8个体素
+
+# VOXEL BUDGET (体素预算)
+Target: ~${voxelCount} voxels
+- Legs: 30-40 voxels (4 legs × 8 voxels each)
+- Body: 40-50 voxels
+- Head: 25-30 voxels
+- Face: 5-10 voxels
+- Ears/Tail: 30-40 voxels
+= Total: ~${voxelCount} voxels
+
+⚠️ 必须生成完整模型！如果接近字符限制，优先保证腿、身体、头部完整。
 
 # DESIGN PRINCIPLES (设计原则)
 1. **块状优先 (Chunky First)**：时刻记住用 2x2/3x3，不要用 1x1
@@ -191,10 +205,13 @@ Step 5: APPENDAGES - 附属物
 3. **深度映射**：2D轮廓延展到3D，确保侧面和背面也合理
 
 # OUTPUT FORMAT (输出格式)
-返回纯JSON数组：
+⚠️ CRITICAL - 只返回JSON，不要有任何解释文字！
+⚠️ CRITICAL - 必须生成完整模型（腿+身体+头部+五官），不能只生成一部分！
+
+返回纯JSON数组（直接返回，不要用代码块包装）：
 [{"x": number, "y": number, "z": number, "color": "#hex"}, ...]
 
-Target: ~${voxelCount} voxels (300-400 range)
+Target: ~${voxelCount} voxels (控制在200以内避免截断)
 Style: ${styleGuides[style]}
 
 # EXAMPLE: Chunky Panda (块状熊猫)
@@ -484,42 +501,99 @@ export async function generateVoxelModel(
   // 移除markdown代码块标记
   let cleanedResponse = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
 
+  // 检查响应是否被截断（没有结束的]或}）
+  const trimmedResponse = cleanedResponse.trim();
+  const startsWithBracket = trimmedResponse.startsWith('[');
+  const startsWithBrace = trimmedResponse.startsWith('{');
+  const endsWithBracket = trimmedResponse.endsWith(']');
+  const endsWithBrace = trimmedResponse.endsWith('}');
+
+  // 如果响应被截断，尝试修复
+  if (startsWithBracket && !endsWithBracket) {
+    console.warn('Response appears truncated (missing closing ]). Attempting to fix...');
+    // 移除最后一个不完整的对象
+    const lastCompleteObject = cleanedResponse.lastIndexOf('}');
+    if (lastCompleteObject > 0) {
+      cleanedResponse = cleanedResponse.substring(0, lastCompleteObject + 1) + ']';
+      console.log('Fixed response by adding closing bracket');
+    }
+  } else if (startsWithBrace && !endsWithBrace) {
+    console.warn('Response appears truncated (missing closing }). Cannot reliably fix.');
+  }
+
   // 尝试多种方式匹配JSON
   let jsonMatch = null;
 
-  // 方法1: 匹配最长的JSON数组（从第一个[到最后一个]）
-  jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+  // 方法1: 使用贪婪匹配提取完整的JSON数组
+  if (startsWithBracket) {
+    jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+  }
 
-  // 方法2: 如果没找到数组，尝试匹配对象（压缩格式）
-  if (!jsonMatch) {
+  // 方法2: 如果没找到数组，尝试匹配对象
+  if (!jsonMatch && startsWithBrace) {
     jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
   }
 
-  // 方法3: 如果还是没有，尝试找第一个[或{开始的内容
+  // 方法3: 使用括号计数精确提取（备用）
   if (!jsonMatch) {
-    const startIndex = Math.max(
-      cleanedResponse.indexOf('['),
-      cleanedResponse.indexOf('{')
-    );
+    const startBracketIndex = cleanedResponse.indexOf('[');
+    const startBraceIndex = cleanedResponse.indexOf('{');
+
+    let startIndex = -1;
+    let startChar = '';
+    let endChar = '';
+
+    if (startBracketIndex >= 0 && (startBraceIndex < 0 || startBracketIndex < startBraceIndex)) {
+      startIndex = startBracketIndex;
+      startChar = '[';
+      endChar = ']';
+    } else if (startBraceIndex >= 0) {
+      startIndex = startBraceIndex;
+      startChar = '{';
+      endChar = '}';
+    }
+
     if (startIndex >= 0) {
-      const possibleJson = cleanedResponse.substring(startIndex);
-      // 尝试找到匹配的结束符
       let bracketCount = 0;
       let endIndex = -1;
-      const startChar = possibleJson[0];
-      const endChar = startChar === '[' ? ']' : '}';
+      let inString = false;
+      let escapeNext = false;
 
-      for (let i = 0; i < possibleJson.length; i++) {
-        if (possibleJson[i] === startChar) bracketCount++;
-        if (possibleJson[i] === endChar) bracketCount--;
-        if (bracketCount === 0) {
-          endIndex = i;
-          break;
+      for (let i = startIndex; i < cleanedResponse.length; i++) {
+        const char = cleanedResponse[i];
+
+        // 处理转义字符
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+
+        // 处理字符串
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+
+        // 只在字符串外计数括号
+        if (!inString) {
+          if (char === startChar) bracketCount++;
+          if (char === endChar) {
+            bracketCount--;
+            if (bracketCount === 0) {
+              endIndex = i;
+              break;
+            }
+          }
         }
       }
 
-      if (endIndex > 0) {
-        jsonMatch = [possibleJson.substring(0, endIndex + 1)];
+      if (endIndex > startIndex) {
+        jsonMatch = [cleanedResponse.substring(startIndex, endIndex + 1)];
       }
     }
   }
@@ -557,21 +631,77 @@ export async function generateVoxelModel(
 
   let voxels: Voxel[];
 
-  // 检测格式
+  // 详细日志：查看数据结构
+  console.log('Parsed data type:', typeof parsedData);
+  console.log('Is array:', Array.isArray(parsedData));
+  if (Array.isArray(parsedData)) {
+    console.log('Array length:', parsedData.length);
+    if (parsedData.length > 0) {
+      console.log('First element:', JSON.stringify(parsedData[0]));
+      console.log('First element keys:', Object.keys(parsedData[0] || {}));
+    }
+  } else if (typeof parsedData === 'object') {
+    console.log('Object keys:', Object.keys(parsedData));
+    if (parsedData.shapes) {
+      console.log('Has shapes, length:', parsedData.shapes.length);
+    }
+  }
+
+  // 检测格式（更宽松的判断）
   if (parsedData.shapes && Array.isArray(parsedData.shapes)) {
     console.log('Detected COMPRESSED format (with shapes), expanding...');
     voxels = expandCompressedFormat(parsedData);
     console.log(`Expanded from ${parsedData.shapes.length} shapes to ${voxels.length} voxels`);
-  } else if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0].type) {
+  } else if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0]?.type) {
     console.log('Detected COMPRESSED format (direct shapes), expanding...');
     voxels = expandCompressedFormat({ shapes: parsedData });
     console.log(`Expanded from ${parsedData.length} shapes to ${voxels.length} voxels`);
-  } else if (Array.isArray(parsedData) && parsedData.length > 0 && typeof parsedData[0].x === 'number') {
-    console.log('Detected DIRECT voxel array format');
-    voxels = parsedData as Voxel[];
+  } else if (Array.isArray(parsedData) && parsedData.length > 0) {
+    // 检查第一个元素是否有x,y,z坐标
+    const firstItem = parsedData[0];
+    if (firstItem &&
+        (typeof firstItem.x === 'number' || firstItem.x === 0) &&
+        (typeof firstItem.y === 'number' || firstItem.y === 0) &&
+        (typeof firstItem.z === 'number' || firstItem.z === 0)) {
+      console.log('Detected DIRECT voxel array format');
+      voxels = parsedData.map(v => ({
+        x: v.x,
+        y: v.y,
+        z: v.z,
+        color: v.color || '#ffffff'
+      })) as Voxel[];
+    } else {
+      console.error('Unknown array format. First item:', firstItem);
+      console.error('Full data sample (first 3 items):', JSON.stringify(parsedData.slice(0, 3)));
+      throw new Error(`AI返回的数据格式错误。第一个元素应该包含x,y,z坐标，但实际收到: ${JSON.stringify(firstItem)}`);
+    }
+  } else if (parsedData.voxels && Array.isArray(parsedData.voxels)) {
+    // 有些AI可能返回 {voxels: [...]} 格式
+    console.log('Detected wrapped voxel format');
+    voxels = parsedData.voxels.map((v: any) => ({
+      x: v.x,
+      y: v.y,
+      z: v.z,
+      color: v.color || '#ffffff'
+    })) as Voxel[];
   } else {
     console.error('Unknown data format:', parsedData);
-    throw new Error('Unknown data format received');
+    console.error('Data type:', typeof parsedData);
+    console.error('Data preview:', JSON.stringify(parsedData).substring(0, 500));
+
+    // 生成详细的错误信息
+    let detailMsg = `数据类型: ${typeof parsedData}`;
+    if (Array.isArray(parsedData)) {
+      detailMsg += `\n是数组，长度: ${parsedData.length}`;
+      if (parsedData.length > 0) {
+        detailMsg += `\n第一个元素: ${JSON.stringify(parsedData[0])}`;
+      }
+    } else if (typeof parsedData === 'object' && parsedData !== null) {
+      detailMsg += `\n对象的键: ${Object.keys(parsedData).join(', ')}`;
+      detailMsg += `\n数据预览: ${JSON.stringify(parsedData).substring(0, 200)}`;
+    }
+
+    throw new Error(`AI返回了不支持的数据格式。\n\n调试信息：\n${detailMsg}\n\n请截图这个错误信息发给开发者。`);
   }
 
   // 验证数据

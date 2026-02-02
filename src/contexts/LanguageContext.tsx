@@ -64,6 +64,7 @@ const translations: Translations = {
 
     // Tooltips
     'tooltip.apiKey': 'API Key Settings',
+    'tooltip.autoRotate': 'Auto Rotate',
     'tooltip.export': 'Export JSON',
     'tooltip.share': 'Copy to Clipboard',
 
@@ -128,6 +129,7 @@ const translations: Translations = {
 
     // 提示
     'tooltip.apiKey': 'API 密钥设置',
+    'tooltip.autoRotate': '自动旋转',
     'tooltip.export': '导出 JSON',
     'tooltip.share': '复制到剪贴板',
 

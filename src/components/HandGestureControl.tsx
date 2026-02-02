@@ -17,7 +17,7 @@ interface HandGestureControlProps {
 }
 
 // 检测单手手势
-function detectHandGesture(hand: any): string {
+function detectHandGesture(hand: any[]): string {
   if (!hand) return 'none';
 
   // 计算手指伸展状态
@@ -109,8 +109,8 @@ export default function HandGestureControl({
       // 绘制手部标记
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         // 识别左右手
-        let leftHand = null;
-        let rightHand = null;
+        let leftHand: any[] | null = null;
+        let rightHand: any[] | null = null;
         let leftHandIndex = -1;
         let rightHandIndex = -1;
 
@@ -166,9 +166,9 @@ export default function HandGestureControl({
 
         // === 右手控制：指针选择、抓取、旋转、缩放 ===
         if (rightHand) {
-          const handCenter = {
-            x: rightHand[9].x,
-            y: rightHand[9].y,
+          const handCenter: { x: number; y: number } = {
+            x: (rightHand[9] as any).x,
+            y: (rightHand[9] as any).y,
           };
 
           // 右手比"1" = 指针选择（随时可用）
@@ -199,7 +199,7 @@ export default function HandGestureControl({
             // 反转X和Y方向，使手势与屏幕移动方向一致
             const handX = -(handCenter.x * 2 - 1);
             const handY = -(handCenter.y * 2 - 1); // Y方向也反转
-            const handZ = Math.max(0, Math.min(1, (1 + rightHand[9].z) / 2));
+            const handZ = Math.max(0, Math.min(1, (1 + (rightHand[9] as any).z) / 2));
 
             if (!isGrabbingRef.current) {
               onGrab(handX, handY, handZ);
@@ -236,7 +236,7 @@ export default function HandGestureControl({
 
             // 右手V字 = 缩放（随时可用）
             else if (rightGesture === 'peace') {
-              const indexTipY = rightHand[8].y;
+              const indexTipY = (rightHand[8] as any).y;
 
               if (peaceStartYRef.current === null) {
                 peaceStartYRef.current = indexTipY;

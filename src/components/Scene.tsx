@@ -117,9 +117,9 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     controls.target.set(0, 5, 0); // 设置旋转中心点在模型中心
     controls.enablePan = false; // 禁用平移
     controls.mouseButtons = {
-      LEFT: -1,                   // 左键：禁用
-      MIDDLE: THREE.MOUSE.DOLLY,  // 中键：缩放
-      RIGHT: THREE.MOUSE.ROTATE   // 右键：旋转
+      LEFT: THREE.MOUSE.PAN as any,  // 左键：禁用（使用 PAN 然后 enablePan 已经false）
+      MIDDLE: THREE.MOUSE.DOLLY,     // 中键：缩放
+      RIGHT: THREE.MOUSE.ROTATE      // 右键：旋转
     };
     controlsRef.current = controls;
 

@@ -1094,12 +1094,12 @@ export const presetLiTongxue: Voxel[] = [];
 export const presetMega: Voxel[] = [];
 
 export const presets = [
-  { name: '理想 L9', data: presetLiL9 },
   { name: '理想同学', data: presetLiTongxue, loadFrom: '/litongxue.json' },
+  { name: '理想 L9', data: presetLiL9, loadFrom: '/li-l9.json' },
   { name: '🚗 Mega', data: presetMega, loadFrom: '/mega.json' },
   { name: '🐼 熊猫', data: presetPanda },
   { name: '🐰 兔子', data: presetRabbit },
   { name: '🦊 狐狸', data: presetFox },
   { name: '🏰 城堡', data: presetDisneyCastle },
-  { name: '🦅 Eagle', data: presetEagle },
+  { name: '🦅 老鹰', data: presetEagle },
 ];

@@ -54,7 +54,7 @@ const translations: Translations = {
     'preset.quickStart': 'Quick Start',
     'preset.car': '🚗 Car',
     'preset.cat': '🐱 Cat',
-    'preset.eagle': '🦅 Eagle',
+    'preset.eagle': '🦅 老鹰',
     'preset.house': '🏠 House',
 
     // API Key

@@ -72,11 +72,30 @@ function App() {
       console.error('Failed to load saved history:', error);
     }
 
-    // 没有保存的历史记录，加载默认的理想L9模型
-    const initialVoxels = presets[0].data;
-    setVoxels(initialVoxels);
-    setVoxelHistory([initialVoxels]);
-    setHistoryIndex(0);
+    // 没有保存的历史记录，加载默认的理想同学模型
+    const loadDefaultModel = async () => {
+      try {
+        const firstPreset = presets[0];
+        let initialVoxels: Voxel[];
+
+        if (firstPreset.loadFrom) {
+          // 异步加载
+          const response = await fetch(firstPreset.loadFrom);
+          initialVoxels = await response.json();
+        } else {
+          // 直接使用
+          initialVoxels = firstPreset.data;
+        }
+
+        setVoxels(initialVoxels);
+        setVoxelHistory([initialVoxels]);
+        setHistoryIndex(0);
+      } catch (error) {
+        console.error('Failed to load default model:', error);
+      }
+    };
+
+    loadDefaultModel();
   }, []);
 
   // 保存历史记录到localStorage

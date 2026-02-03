@@ -315,7 +315,7 @@ async function callGeminiAPI(apiKey: string, prompt: string, systemPrompt: strin
   const maxTokens = 8192;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.9,

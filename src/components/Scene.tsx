@@ -81,25 +81,26 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     scene.add(ground);
 
     // 添加灯光 - 理想"家"的温暖照明
-    const ambientLight = new THREE.AmbientLight(0xfff8f0, 0.6); // 降低环境光，让阴影更明显
+    const ambientLight = new THREE.AmbientLight(0xfff8f0, 0.5); // 降低环境光，让阴影更明显
     scene.add(ambientLight);
 
     // 主光源 - 微黄调平行光，清晰但柔和的投影
-    const directionalLight = new THREE.DirectionalLight(0xfffaed, 1.8); // 增加光强，让阴影更清晰
-    directionalLight.position.set(15, 25, 15);
-    directionalLight.castShadow = true;
+    const directionalLight = new THREE.DirectionalLight(0xfffaed, 1.5);
+    directionalLight.position.set(50, 80, 30); // 参考教程：更高更远的光源位置
+    directionalLight.castShadow = true; // 核心：开启阴影投射
 
-    // 高质量柔和阴影设置
-    directionalLight.shadow.camera.left = -30;
-    directionalLight.shadow.camera.right = 30;
-    directionalLight.shadow.camera.top = 30;
-    directionalLight.shadow.camera.bottom = -30;
-    directionalLight.shadow.camera.near = 0.1;
-    directionalLight.shadow.camera.far = 100;
-    directionalLight.shadow.mapSize.width = 2048; // 降低到2048提高性能
+    // 提高阴影分辨率，让暗示方块的阴影边缘更锐利、更准确
+    directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.bias = -0.0005; // 调整bias避免阴影痤疮
-    directionalLight.shadow.normalBias = 0.02; // 添加normalBias改善阴影质量
+
+    // 阴影相机范围设置
+    directionalLight.shadow.camera.left = -50;
+    directionalLight.shadow.camera.right = 50;
+    directionalLight.shadow.camera.top = 50;
+    directionalLight.shadow.camera.bottom = -50;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 200;
+
     scene.add(directionalLight);
 
     // 添加补光，模拟自然采光

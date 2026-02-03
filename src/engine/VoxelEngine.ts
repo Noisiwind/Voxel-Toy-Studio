@@ -156,6 +156,10 @@ export class VoxelEngine {
     // 隐藏指针光标
     this.hidePointer();
 
+    // 关闭阴影（打碎后的碎片不需要阴影）
+    this.instancedMesh.castShadow = false;
+    this.instancedMesh.receiveShadow = false;
+
     // 为每个方块生成随机速度
     this.physics = this.voxels.map(() => ({
       velocity: {
@@ -269,6 +273,9 @@ export class VoxelEngine {
 
       if (allSettled) {
         this.state = 'stable';
+        // 重新启用阴影（模型完整状态）
+        this.instancedMesh.castShadow = true;
+        this.instancedMesh.receiveShadow = true;
       }
     } else if (this.state === 'rebuilding') {
       let allReached = true;
@@ -313,6 +320,9 @@ export class VoxelEngine {
         }
         this.instancedMesh.instanceMatrix.needsUpdate = true;
         this.state = 'stable';
+        // 重新启用阴影（模型重组完成，恢复完整状态）
+        this.instancedMesh.castShadow = true;
+        this.instancedMesh.receiveShadow = true;
       }
     }
   }

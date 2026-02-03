@@ -27,10 +27,10 @@ function buildSystemPrompt(settings: GenerationSettings): string {
 COMPRESSED FORMAT - Use geometric shapes:
 {
   "shapes": [
-    {"type": "box", "from": [x1,y1,z1], "to": [x2,y2,z2], "color": "#hex"},
-    {"type": "sphere", "center": [x,y,z], "radius": r, "color": "#hex"},
-    {"type": "cylinder", "from": [x1,y1,z1], "to": [x2,y2,z2], "radius": r, "color": "#hex"},
-    {"type": "voxels", "positions": [[x,y,z], ...], "color": "#hex"}
+    {"type": "box", "from": [x1,y1,z1], "to": [x2,y2,z2], "c": "#hex"},
+    {"type": "sphere", "center": [x,y,z], "radius": r, "c": "#hex"},
+    {"type": "cylinder", "from": [x1,y1,z1], "to": [x2,y2,z2], "radius": r, "c": "#hex"},
+    {"type": "voxels", "positions": [[x,y,z], ...], "c": "#hex"}
   ]
 }
 
@@ -93,31 +93,31 @@ TARGET: ${voxelCount} voxels (±10%)
 {
   "shapes": [
     // STEP 1: Legs (4 cylinders, Y=0-2)
-    {"type": "cylinder", "from": [-2,0,2], "to": [-2,2,2], "radius": 1, "color": "#000000"},
-    {"type": "cylinder", "from": [2,0,2], "to": [2,2,2], "radius": 1, "color": "#000000"},
-    {"type": "cylinder", "from": [-2,0,-2], "to": [-2,2,-2], "radius": 1, "color": "#000000"},
-    {"type": "cylinder", "from": [2,0,-2], "to": [2,2,-2], "radius": 1, "color": "#000000"},
+    {"type": "cylinder", "from": [-2,0,2], "to": [-2,2,2], "radius": 1, "c": "#000000"},
+    {"type": "cylinder", "from": [2,0,2], "to": [2,2,2], "radius": 1, "c": "#000000"},
+    {"type": "cylinder", "from": [-2,0,-2], "to": [-2,2,-2], "radius": 1, "c": "#000000"},
+    {"type": "cylinder", "from": [2,0,-2], "to": [2,2,-2], "radius": 1, "c": "#000000"},
 
     // STEP 2: Body (box, Y=2-6, white)
-    {"type": "box", "from": [-3,2,-2], "to": [3,6,2], "color": "#FFFFFF"},
+    {"type": "box", "from": [-3,2,-2], "to": [3,6,2], "c": "#FFFFFF"},
 
     // STEP 3: Head (sphere, Y=7-9, white)
-    {"type": "sphere", "center": [0,7,0], "radius": 3, "color": "#FFFFFF"},
+    {"type": "sphere", "center": [0,7,0], "radius": 3, "c": "#FFFFFF"},
 
     // STEP 4: Arms (cylinders extending from body)
-    {"type": "cylinder", "from": [-4,3,0], "to": [-3,5,0], "radius": 1, "color": "#000000"},
-    {"type": "cylinder", "from": [3,3,0], "to": [4,5,0], "radius": 1, "color": "#000000"},
+    {"type": "cylinder", "from": [-4,3,0], "to": [-3,5,0], "radius": 1, "c": "#000000"},
+    {"type": "cylinder", "from": [3,3,0], "to": [4,5,0], "radius": 1, "c": "#000000"},
 
     // STEP 5: Ears (small boxes on head top)
-    {"type": "box", "from": [-2,9,-1], "to": [-1,10,0], "color": "#000000"},
-    {"type": "box", "from": [1,9,-1], "to": [2,10,0], "color": "#000000"},
+    {"type": "box", "from": [-2,9,-1], "to": [-1,10,0], "c": "#000000"},
+    {"type": "box", "from": [1,9,-1], "to": [2,10,0], "c": "#000000"},
 
     // STEP 6: Facial features (voxels for precision)
-    {"type": "voxels", "positions": [[-2,8,3],[-2,7,3],[-1,7,3]], "color": "#000000"},  // Left eye patch
-    {"type": "voxels", "positions": [[2,8,3],[2,7,3],[1,7,3]], "color": "#000000"},     // Right eye patch
-    {"type": "voxels", "positions": [[-2,7,3]], "color": "#1A1A1A"},  // Left eye
-    {"type": "voxels", "positions": [[2,7,3]], "color": "#1A1A1A"},   // Right eye
-    {"type": "voxels", "positions": [[0,6,3],[0,5,3]], "color": "#000000"}  // Nose
+    {"type": "voxels", "positions": [[-2,8,3],[-2,7,3],[-1,7,3]], "c": "#000000"},  // Left eye patch
+    {"type": "voxels", "positions": [[2,8,3],[2,7,3],[1,7,3]], "c": "#000000"},     // Right eye patch
+    {"type": "voxels", "positions": [[-2,7,3]], "c": "#1A1A1A"},  // Left eye
+    {"type": "voxels", "positions": [[2,7,3]], "c": "#1A1A1A"},   // Right eye
+    {"type": "voxels", "positions": [[0,6,3],[0,5,3]], "c": "#000000"}  // Nose
   ]
 }
 
@@ -209,7 +209,7 @@ Target: ~${voxelCount} voxels
 ⚠️ CRITICAL - 必须生成完整模型（腿+身体+头部+五官），不能只生成一部分！
 
 返回纯JSON数组（直接返回，不要用代码块包装）：
-[{"x": number, "y": number, "z": number, "color": "#hex"}, ...]
+[{"x": number, "y": number, "z": number, "c": "#hex"}, ...]
 
 Target: ~${voxelCount} voxels (控制在200以内避免截断)
 Style: ${styleGuides[style]}
@@ -235,7 +235,7 @@ function expandCompressedFormat(compressedData: any): Voxel[] {
   }
 
   for (const shape of compressedData.shapes) {
-    const color = shape.color;
+    const color = shape.c;
 
     switch (shape.type) {
       case 'box':
@@ -245,7 +245,7 @@ function expandCompressedFormat(compressedData: any): Voxel[] {
         for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
           for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
             for (let z = Math.min(z1, z2); z <= Math.max(z1, z2); z++) {
-              voxels.push({ x, y, z, color });
+              voxels.push({ x, y, z, c: color });
             }
           }
         }
@@ -260,7 +260,7 @@ function expandCompressedFormat(compressedData: any): Voxel[] {
             for (let z = cz - radius; z <= cz + radius; z++) {
               const dist = Math.sqrt((x-cx)**2 + (y-cy)**2 + (z-cz)**2);
               if (dist <= radius) {
-                voxels.push({ x, y, z, color });
+                voxels.push({ x, y, z, c: color });
               }
             }
           }
@@ -284,7 +284,7 @@ function expandCompressedFormat(compressedData: any): Voxel[] {
             for (let z = centerZ - cylRadius; z <= centerZ + cylRadius; z++) {
               const dist = Math.sqrt((x-centerX)**2 + (z-centerZ)**2);
               if (dist <= cylRadius) {
-                voxels.push({ x: Math.round(x), y, z: Math.round(z), color });
+                voxels.push({ x: Math.round(x), y, z: Math.round(z), c: color });
               }
             }
           }
@@ -295,7 +295,7 @@ function expandCompressedFormat(compressedData: any): Voxel[] {
         // 直接添加体素列表
         if (shape.positions && Array.isArray(shape.positions)) {
           for (const [x, y, z] of shape.positions) {
-            voxels.push({ x, y, z, color });
+            voxels.push({ x, y, z, c: color });
           }
         }
         break;
@@ -534,7 +534,7 @@ export async function generateVoxelModel(
         x: v.x,
         y: v.y,
         z: v.z,
-        color: v.color || '#ffffff'
+        c: v.c || '#ffffff'
       })) as Voxel[];
     } else {
       console.error('Unknown array format. First item:', firstItem);
@@ -548,7 +548,7 @@ export async function generateVoxelModel(
       x: v.x,
       y: v.y,
       z: v.z,
-      color: v.color || '#ffffff'
+      c: v.c || '#ffffff'
     })) as Voxel[];
   } else {
     console.error('Unknown data format:', parsedData);

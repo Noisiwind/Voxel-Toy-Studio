@@ -34,8 +34,8 @@ export default function EditModal({
   const getColorStats = () => {
     const colorMap = new Map<string, number>();
     for (const voxel of previewVoxels) {
-      const count = colorMap.get(voxel.color) || 0;
-      colorMap.set(voxel.color, count + 1);
+      const count = colorMap.get(voxel.c) || 0;
+      colorMap.set(voxel.c, count + 1);
     }
     return Array.from(colorMap.entries())
       .sort((a, b) => b[1] - a[1]) // 按数量降序排列
@@ -57,7 +57,7 @@ export default function EditModal({
             const key = `${newX},${newY},${newZ}`;
 
             if (!scaledMap.has(key)) {
-              scaledMap.set(key, { x: newX, y: newY, z: newZ, color: voxel.color });
+              scaledMap.set(key, { x: newX, y: newY, z: newZ, c: voxel.c });
             }
           }
         }
@@ -78,7 +78,7 @@ export default function EditModal({
       const key = `${newX},${newY},${newZ}`;
 
       if (!scaledMap.has(key)) {
-        scaledMap.set(key, { x: newX, y: newY, z: newZ, color: voxel.color });
+        scaledMap.set(key, { x: newX, y: newY, z: newZ, c: voxel.c });
       }
     }
 
@@ -131,7 +131,7 @@ export default function EditModal({
   const handleGlobalRecolor = () => {
     const recolored = previewVoxels.map(voxel => ({
       ...voxel,
-      color: selectedColor
+      c: selectedColor
     }));
     setPreviewVoxels(recolored);
   };
@@ -139,7 +139,7 @@ export default function EditModal({
   // 颜色替换 - 将指定颜色的体素替换成新颜色
   const handleColorReplace = (oldColor: string) => {
     const replaced = previewVoxels.map(voxel =>
-      voxel.color === oldColor ? { ...voxel, color: selectedColor } : voxel
+      voxel.c === oldColor ? { ...voxel, c: selectedColor } : voxel
     );
     setPreviewVoxels(replaced);
   };
@@ -149,7 +149,7 @@ export default function EditModal({
     const colors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'];
     const randomized = previewVoxels.map(voxel => ({
       ...voxel,
-      color: colors[Math.floor(Math.random() * colors.length)]
+      c: colors[Math.floor(Math.random() * colors.length)]
     }));
     setPreviewVoxels(randomized);
   };
@@ -304,7 +304,7 @@ export default function EditModal({
               </label>
               <div className="flex gap-3 items-center">
                 <input
-                  type="color"
+                  type="c"
                   value={selectedColor}
                   onChange={(e) => setSelectedColor(e.target.value)}
                   className="w-20 h-12 rounded-xl cursor-pointer border-2 border-gray-300"

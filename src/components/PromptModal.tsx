@@ -100,7 +100,7 @@ export default function PromptModal({
       // 简单验证第一个元素
       const first = voxels[0];
       if (typeof first.x !== 'number' || typeof first.y !== 'number' ||
-          typeof first.z !== 'number' || typeof first.color !== 'string') {
+          typeof first.z !== 'number' || typeof first.c !== 'string') {
         throw new Error('JSON格式错误，需要包含 {x, y, z, color} 字段');
       }
 
@@ -235,7 +235,7 @@ export default function PromptModal({
                   <textarea
                     value={jsonInput}
                     onChange={(e) => setJsonInput(e.target.value)}
-                    placeholder='粘贴JSON数据，例如：[{"x":0,"y":0,"z":0,"color":"#ff0000"}, ...]'
+                    placeholder='粘贴JSON数据，例如：[{"x":0,"y":0,"z":0,"c":"#ff0000"}, ...]'
                     className="w-full px-4 py-3 border-2 border-purple-300 rounded-2xl focus:border-purple-500 focus:outline-none resize-none font-mono text-xs"
                     rows={6}
                     disabled={isLoading}

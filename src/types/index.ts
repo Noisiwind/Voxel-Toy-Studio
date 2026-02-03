@@ -2,7 +2,7 @@ export interface Voxel {
   x: number;
   y: number;
   z: number;
-  color: string;
+  c: string; // color (缩短以节省JSON空间)
 }
 
 export type EngineState = 'stable' | 'dismantling' | 'rebuilding';

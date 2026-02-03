@@ -300,8 +300,8 @@ function App() {
 
     const newVoxels = voxels.map(voxel => {
       if (voxel.x === x && voxel.y === y && voxel.z === z) {
-        console.log('Found matching voxel, changing color from', voxel.color, 'to', paintColor);
-        return { ...voxel, color: paintColor };
+        console.log('Found matching voxel, changing color from', voxel.c, 'to', paintColor);
+        return { ...voxel, c: paintColor };
       }
       return voxel;
     });

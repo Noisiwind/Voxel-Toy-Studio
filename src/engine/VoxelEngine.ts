@@ -126,7 +126,7 @@ export class VoxelEngine {
     this.voxels.forEach((voxel, i) => {
       matrix.setPosition(voxel.x, voxel.y, voxel.z);
       this.instancedMesh!.setMatrixAt(i, matrix);
-      color.set(voxel.color);
+      color.set(voxel.c);
       this.instancedMesh!.setColorAt(i, color);
     });
 
@@ -145,7 +145,7 @@ export class VoxelEngine {
     this.currentRotations = voxels.map(() => new THREE.Euler(0, 0, 0));
 
     // 保存原始颜色用于高亮
-    this.originalColors = voxels.map(v => new THREE.Color(v.color));
+    this.originalColors = voxels.map(v => new THREE.Color(v.c));
   }
 
   dismantle() {
@@ -198,7 +198,7 @@ export class VoxelEngine {
     const color = new THREE.Color();
     this.voxels.forEach((voxel, i) => {
       if (i < this.instancedMesh!.count) {
-        color.set(voxel.color);
+        color.set(voxel.c);
         this.instancedMesh!.setColorAt(i, color);
       }
     });

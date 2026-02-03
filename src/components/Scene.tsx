@@ -81,11 +81,11 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     scene.add(ground);
 
     // 添加灯光 - 理想"家"的温暖照明
-    const ambientLight = new THREE.AmbientLight(0xfff8f0, 0.8); // 高亮度暖色环境光
+    const ambientLight = new THREE.AmbientLight(0xfff8f0, 0.6); // 降低环境光，让阴影更明显
     scene.add(ambientLight);
 
     // 主光源 - 微黄调平行光，清晰但柔和的投影
-    const directionalLight = new THREE.DirectionalLight(0xfffaed, 1.5); // 微黄调
+    const directionalLight = new THREE.DirectionalLight(0xfffaed, 1.8); // 增加光强，让阴影更清晰
     directionalLight.position.set(15, 25, 15);
     directionalLight.castShadow = true;
 
@@ -98,8 +98,8 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     directionalLight.shadow.camera.far = 100;
     directionalLight.shadow.mapSize.width = 4096;
     directionalLight.shadow.mapSize.height = 4096;
-    directionalLight.shadow.bias = -0.0001;
-    directionalLight.shadow.radius = 3; // 增加软阴影效果
+    directionalLight.shadow.bias = -0.001; // 调整bias使阴影更明显
+    directionalLight.shadow.radius = 2; // 稍微减少柔和度，使阴影边缘更清晰
     scene.add(directionalLight);
 
     // 添加补光，模拟自然采光

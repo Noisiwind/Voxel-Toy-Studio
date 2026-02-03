@@ -45,7 +45,7 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     // 创建场景
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xFFFAF0); // 暖色米白背景
-    scene.fog = new THREE.Fog(0xFFFAF0, 40, 80); // 指数级雾化，只影响远方地平线
+    scene.fog = new THREE.Fog(0xFFFAF0, 70, 100); // 雾效推远，只影响远方地平线，不影响模型
 
     // 创建相机 - 正面视角
     const camera = new THREE.PerspectiveCamera(
@@ -76,7 +76,7 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.1;
+    ground.position.y = 0; // 地面在Y=0，确保阴影能正确投射
     ground.receiveShadow = true;
     scene.add(ground);
 
@@ -96,10 +96,10 @@ export default function Scene({ voxels, autoRotate, onEngineReady, onCameraReady
     directionalLight.shadow.camera.bottom = -30;
     directionalLight.shadow.camera.near = 0.1;
     directionalLight.shadow.camera.far = 100;
-    directionalLight.shadow.mapSize.width = 4096;
-    directionalLight.shadow.mapSize.height = 4096;
-    directionalLight.shadow.bias = -0.001; // 调整bias使阴影更明显
-    directionalLight.shadow.radius = 2; // 稍微减少柔和度，使阴影边缘更清晰
+    directionalLight.shadow.mapSize.width = 2048; // 降低到2048提高性能
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.bias = -0.0005; // 调整bias避免阴影痤疮
+    directionalLight.shadow.normalBias = 0.02; // 添加normalBias改善阴影质量
     scene.add(directionalLight);
 
     // 添加补光，模拟自然采光

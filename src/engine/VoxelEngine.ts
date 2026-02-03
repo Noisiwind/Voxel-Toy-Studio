@@ -14,7 +14,7 @@ export class VoxelEngine {
   private currentRotations: THREE.Euler[] = [];
   private lerpSpeed = 0.05;
   private gravity = -0.02;
-  private groundY = 0.5;
+  private groundY = 0.5; // 碎片落地高度（体素块的中心点）
 
   // 用于拖动交互
   private raycaster = new THREE.Raycaster();
@@ -88,9 +88,9 @@ export class VoxelEngine {
       }
     }
 
-    // 计算最小 Y 值，确保模型底部在地板上方
+    // 计算最小 Y 值，确保模型底部在地板上方，留出空间让阴影可见
     const minY = Math.min(...voxels.map(v => v.y));
-    this.yOffset = minY < 0 ? -minY + 0.5 : 0.5; // 至少抬高 0.5，避免与地板重叠
+    this.yOffset = minY < 0 ? -minY + 2.5 : 2.5; // 抬高到 2.5，让阴影清晰可见
 
     // 保存原始voxels
     this.originalVoxels = voxels;
@@ -183,9 +183,9 @@ export class VoxelEngine {
     // 隐藏指针光标
     this.hidePointer();
 
-    // 计算新模型的最小 Y 值并应用偏移
+    // 计算新模型的最小 Y 值并应用偏移，保持悬浮高度
     const minY = Math.min(...newVoxels.map(v => v.y));
-    const yOffset = minY < 0 ? -minY + 0.5 : 0.5;
+    const yOffset = minY < 0 ? -minY + 2.5 : 2.5;
 
     this.voxels = newVoxels.map(v => ({
       ...v,

@@ -1094,9 +1094,9 @@ export const presetLiTongxue: Voxel[] = [];
 export const presetMega: Voxel[] = [];
 
 export const presets = [
-  { name: '理想同学', translationKey: 'preset.liTongxue', data: presetLiTongxue, loadFrom: '/litongxue.json' },
-  { name: '理想 L9', translationKey: 'preset.liL9', data: presetLiL9, loadFrom: '/li-l9.json' },
-  { name: '🚗 Mega', translationKey: 'preset.mega', data: presetMega, loadFrom: '/mega.json' },
+  { name: '理想同学', translationKey: 'preset.liTongxue', data: presetLiTongxue, loadFrom: `${import.meta.env.BASE_URL}litongxue.json` },
+  { name: '理想 L9', translationKey: 'preset.liL9', data: presetLiL9, loadFrom: `${import.meta.env.BASE_URL}li-l9.json` },
+  { name: '🚗 Mega', translationKey: 'preset.mega', data: presetMega, loadFrom: `${import.meta.env.BASE_URL}mega.json` },
   { name: '🐼 熊猫', translationKey: 'preset.panda', data: presetPanda },
   { name: '🐰 兔子', translationKey: 'preset.rabbit', data: presetRabbit },
   { name: '🦊 狐狸', translationKey: 'preset.fox', data: presetFox },

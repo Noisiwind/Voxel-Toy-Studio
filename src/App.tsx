@@ -393,7 +393,7 @@ function App() {
       <div className="absolute top-8 right-32 z-10">
         <div className="flex items-center gap-3">
           <img
-            src="/li-auto-logo.png"
+            src={`${import.meta.env.BASE_URL}li-auto-logo.png`}
             alt="Li Auto Logo"
             className="w-14 h-14 object-contain drop-shadow-md"
           />

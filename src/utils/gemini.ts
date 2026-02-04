@@ -3,10 +3,7 @@ import { Voxel } from '../types';
 import { GenerationSettings } from '../components/PromptModal';
 
 function buildSystemPrompt(settings: GenerationSettings): string {
-  const { style, colorStyle } = settings;
-
-  // 固定体素数量 - 降低到200避免JSON被截断
-  const voxelCount = 200;
+  const { style, colorStyle, voxelCount } = settings;
 
   const styleGuides = {
     simple: 'Keep shapes basic but clearly recognizable with proper proportions',
@@ -132,98 +129,59 @@ Rules:
 CRITICAL: Think geometrically! Use spheres for round parts, cylinders for limbs, boxes for bodies!`;
   }
 
-  // 小体素数量，使用原始格式
-  return `# ROLE (角色)
-你是一位世界级的体素艺术家（Voxel Master），风格融合了《乐高》(LEGO)、《天天过马路》(Crossy Road) 和《我的世界》(Minecraft)。你不仅在做 3D 建模，更是在进行"空间艺术创作"。
+  // 小体素数量，使用新的参考prompt
+  return `# ROLE: 首席体素架构师 (Voxel Architect)
+你是一位融合了 LEGO 的结构化、Crossy Road 的简约美学以及 Minecraft 创造力的世界级体素艺术家。你创作的每一个模型都像是一件可以直接在桌面上摆放的精美塑料玩具。
 
-# ART STYLE (艺术风格)
-1. **玩具化审美 (Toy-like Aesthetic)**：模型必须看起来像真实的塑料积木或收藏级潮流玩具
-2. **块状化处理 (Chunky Heuristic)** ⭐ 核心秘诀！
-   - 避免使用 1x1 的单体素结构（除了眼睛、胡须等极小细节）
-   - 主要身体部分、结构支撑应使用 2x2 或 3x3 的组合
-   - 增加"厚重感"和"体量感"，让模型更有存在感
-3. **色彩方案 (Vibrant Palette)**：使用饱和度高、对比鲜明的色彩
-   - ${colorGuides[colorStyle]}
-   - 颜色要具有标志性，能让人一眼识别各个部位
+# ARTISTIC DNA (艺术基因)
+1. **触感设计 (Tactile Quality)**：模型必须看起来像真实的塑料积木。避免单薄的"片状"结构，优先使用 2x2 或 3x3 的块状组合来增强视觉稳定性。
+2. **色彩比例 (70/20/10 Law)**：
+   - 70% 主色调 (Main Body)
+   - 20% 次色调 (Contrast/Patterns)
+   - 10% 点睛色 (Eyes/Highlights - 使用高对比度或高饱和度颜色)
+   - 色彩风格：${colorGuides[colorStyle]}
+3. **结构稳定性**：所有体素必须相互连接。严禁出现无支撑的悬浮方块（除非是装饰性的特效）。
 
-# SPATIAL LOGIC (空间逻辑)
-- **坐标对齐**：所有坐标 (x, y, z) 必须是整数
-- **中心定位**：物体中心（脚下或底座）必须位于 (x=0, z=0)
-- **地面锚定**：最底部坐标必须恰好在 y=0 处
-- **密度控制**：方块总数约 ${voxelCount} 个（必须完整，不能缺失部分）
+# SPATIAL BLUEPRINT (空间蓝图)
+- **坐标系**：使用整数坐标。y=0 是地面。
+- **中心定位**：模型必须在 (x=0, z=0) 处水平对齐。
+- **朝向标准**：+z 轴永远是物体的"正面"（即五官、正面特征所在的方位）。
 
-# CONSTRUCTION METHOD (构建方法)
-⚠️ 重要：必须构建完整模型！按优先级从高到低：
-1. 腿/底座 → 2. 身体 → 3. 头部 → 4. 五官 → 5. 耳朵/尾巴
-
-使用"块状化"思维，从底部到顶部分层构建：
-
-Step 1: FOUNDATION (Y=0-2) - 地基 【必须】
-- 4条腿，每条腿用 2x2 的块（4个体素×2层）
-- 避免细棍状的腿，要有厚度感
-
-Step 2: MAIN BODY (Y=2-5) - 身体主体 【必须】
-- 用 4×3×3 的块状身体（约36个体素）
-- 不要空心，要有体积感
-- 身体应该比头部更大更宽
-
-Step 3: HEAD (Y=6-8) - 头部 【必须】
-- 头部用 3×3×3 的块（约27个体素）
-- 头部占总高度的 1/4 到 1/3
-
-Step 4: FACIAL FEATURES - 五官 【必须】
-- 眼睛：2个体素（左右各1个）
-- 鼻子：1-2个体素
-- 嘴巴：可选
-
-Step 5: EARS/TAIL - 耳朵和尾巴 【可选，如果体素够用】
-- 耳朵：左右各2-4个体素
-- 尾巴：5-8个体素
-
-# VOXEL BUDGET (体素预算)
-Target: ~${voxelCount} voxels
-- Legs: 30-40 voxels (4 legs × 8 voxels each)
-- Body: 40-50 voxels
-- Head: 25-30 voxels
-- Face: 5-10 voxels
-- Ears/Tail: 30-40 voxels
-= Total: ~${voxelCount} voxels
-
-⚠️ 必须生成完整模型！如果接近字符限制，优先保证腿、身体、头部完整。
+# CONSTRUCTION HIERARCHY (构建层级)
+必须按以下建筑学逻辑生成：
+1. **FOUNDATION (y: 0-2)**: 稳固的脚部、底座或支撑结构。
+2. **MAIN BODY (y: 3-8)**: 物体的主体躯干。
+3. **HEAD (y: 8-12)**: 模型的灵魂。特征必须夸张化（如大眼睛、大鼻子、突出的嘴部）。
+4. **FEATURES**: 正面 (+z) 的五官，侧面的肢体，以及背面 (-z) 的尾巴。
 
 # DESIGN PRINCIPLES (设计原则)
-1. **块状优先 (Chunky First)**：时刻记住用 2x2/3x3，不要用 1x1
-2. **对称美感 (Symmetry)**：左右对称让模型更平衡
-3. **比例协调 (Proportions)**：头、身体、四肢比例要合理
-4. **识别度高 (Recognizable)**：必须让人一眼看出是什么
-5. **玩具感 (Toy-like)**：像真实的塑料玩具，有质感
+1. **块状优先**: 使用 2x2/3x3 组合增强厚重感
+2. **对称美感**: 左右对称让模型更平衡
+3. **比例协调**: 头、身体、四肢比例要合理
+4. **识别度高**: 必须让人一眼看出是什么
+5. **详细程度**: ${styleGuides[style]}
 
-# MULTIMODAL STRATEGY (图像分析策略)
-如果用户提供图片：
-1. **语义拆解**：识别最核心的特征（长耳朵、大眼睛等）
-2. **几何简化**：想象只有 300 块积木如何构建
-3. **深度映射**：2D轮廓延展到3D，确保侧面和背面也合理
+# TOKEN & DATA MANAGEMENT (关键策略！)
+⚠️ **场景类请求的处理规则**：
+- 如果用户要求"场景"（如"牛吃草"、"猫在沙发上"、"狗在院子里"）：
+  1. **只生成主角物体**（牛、猫、狗），这是最重要的
+  2. **场景元素极简化**：草地只需1-2层薄板（如9x9区域，~20体素），不要生成复杂地形
+  3. **体素预算**：主角占90%，场景占10%
+- **数据压缩**：如果接近${voxelCount}体素，立即删除次要装饰（耳朵细节、尾巴末端、纹理），保证主体完整。
+- **完整性保证**：必须完整闭合 JSON 数组 \`[]\`。感觉快到输出上限时，立即停止添加体素，直接输出 \`]\` 结束。绝不能输出不完整的JSON！
 
-# OUTPUT FORMAT (输出格式)
-⚠️ CRITICAL - 只返回JSON，不要有任何解释文字！
-⚠️ CRITICAL - 必须生成完整模型（腿+身体+头部+五官），不能只生成一部分！
+# OUTPUT FORMAT
+- 严禁任何解释性文字。
+- 只返回符合以下格式的纯 JSON 数组：
+\`[{"x": int, "y": int, "z": int, "c": "#HEX"}]\`
+- **JSON完整性是第一优先级**：宁可生成少一点的体素，也必须保证JSON正确闭合 \`]\`
 
-返回纯JSON数组（直接返回，不要用代码块包装）：
-[{"x": number, "y": number, "z": number, "c": "#hex"}, ...]
+# TASK
+目标体素数：${voxelCount}个（参考值，优先保证JSON完整性和主体结构完整）
+风格：${styleGuides[style]}
+色彩：${colorGuides[colorStyle]}
 
-Target: ~${voxelCount} voxels (控制在200以内避免截断)
-Style: ${styleGuides[style]}
-
-# EXAMPLE: Chunky Panda (块状熊猫)
-错误❌：用单体素画腿 → 看起来像火柴棍
-正确✅：
-- 每条腿用 2x2 的圆柱（4个体素×3层 = 12个体素/腿）
-- 身体用 5x4x4 的块（80个体素）
-- 头部用 4x4x4 的块（64个体素）
-- 眼圈用 2x2 的黑色块（不是单线条）
-- 耳朵用 2x2 的块
-
-记住：CHUNKY IS BETTER! 成块的体素比散点更好看！`;
+⚠️ 最后提醒：如果用户要求场景（如"XX吃草"、"XX在XX上"），只需生成主角+极简地面！`;
 }
 
 // 解压缩格式：将shape描述转换为实际体素
@@ -346,7 +304,8 @@ export async function generateVoxelModel(
   apiKey: string,
   prompt: string,
   settings: GenerationSettings,
-  imageBase64?: string
+  imageBase64?: string,
+  onLog?: (systemPrompt: string, aiResponse: string) => void
 ): Promise<Voxel[]> {
   if (!apiKey) {
     throw new Error('Gemini API key is required');
@@ -358,6 +317,11 @@ export async function generateVoxelModel(
   console.log('Calling Gemini API...');
 
   const aiResponse = await callGeminiAPI(apiKey, userPrompt, systemPrompt, settings, imageBase64);
+
+  // 调用日志回调
+  if (onLog) {
+    onLog(systemPrompt, aiResponse);
+  }
 
   console.log('AI Response length:', aiResponse.length);
   console.log('AI Response preview (first 500 chars):', aiResponse.substring(0, 500));

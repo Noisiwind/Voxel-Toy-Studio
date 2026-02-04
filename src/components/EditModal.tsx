@@ -18,7 +18,6 @@ export default function EditModal({
 }: EditModalProps) {
   const [previewVoxels, setPreviewVoxels] = useState<Voxel[]>(currentVoxels);
   const [initialVoxels, setInitialVoxels] = useState<Voxel[]>(currentVoxels);
-  const [selectedColor, setSelectedColor] = useState('#3b82f6'); // 默认蓝色
 
   // 当模态框打开时，保存初始状态
   useEffect(() => {
@@ -29,18 +28,6 @@ export default function EditModal({
   }, [isOpen, currentVoxels]);
 
   if (!isOpen) return null;
-
-  // 获取模型中使用的所有颜色及其数量
-  const getColorStats = () => {
-    const colorMap = new Map<string, number>();
-    for (const voxel of previewVoxels) {
-      const count = colorMap.get(voxel.c) || 0;
-      colorMap.set(voxel.c, count + 1);
-    }
-    return Array.from(colorMap.entries())
-      .sort((a, b) => b[1] - a[1]) // 按数量降序排列
-      .slice(0, 10); // 只显示前10种颜色
-  };
 
   // 等比例缩放（放大）- 将每个体素变成scale³个体素
   const handleScale = (scale: number) => {
@@ -116,6 +103,111 @@ export default function EditModal({
     setPreviewVoxels(shell);
   };
 
+  // 填充内部 - 把空心模型填满
+  const handleFillInside = () => {
+    if (previewVoxels.length === 0) return;
+
+    // 获取边界框
+    const xs = previewVoxels.map(v => v.x);
+    const ys = previewVoxels.map(v => v.y);
+    const zs = previewVoxels.map(v => v.z);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const minZ = Math.min(...zs);
+    const maxZ = Math.max(...zs);
+
+    // 创建现有体素集合
+    const voxelSet = new Set<string>();
+    const voxelMap = new Map<string, Voxel>();
+    for (const voxel of previewVoxels) {
+      const key = `${voxel.x},${voxel.y},${voxel.z}`;
+      voxelSet.add(key);
+      voxelMap.set(key, voxel);
+    }
+
+    // 使用泛洪填充算法标记外部空间
+    const outside = new Set<string>();
+    const queue: [number, number, number][] = [];
+
+    // 从边界外部一圈开始填充
+    const padding = 1;
+    for (let x = minX - padding; x <= maxX + padding; x++) {
+      for (let y = minY - padding; y <= maxY + padding; y++) {
+        for (let z = minZ - padding; z <= maxZ + padding; z++) {
+          // 只从边界开始
+          const isEdge = x === minX - padding || x === maxX + padding ||
+                        y === minY - padding || y === maxY + padding ||
+                        z === minZ - padding || z === maxZ + padding;
+
+          if (isEdge) {
+            const key = `${x},${y},${z}`;
+            if (!voxelSet.has(key)) {
+              outside.add(key);
+              queue.push([x, y, z]);
+            }
+          }
+        }
+      }
+    }
+
+    // BFS标记所有外部空间
+    const directions = [
+      [1, 0, 0], [-1, 0, 0],
+      [0, 1, 0], [0, -1, 0],
+      [0, 0, 1], [0, 0, -1]
+    ];
+
+    while (queue.length > 0) {
+      const [x, y, z] = queue.shift()!;
+
+      for (const [dx, dy, dz] of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const nz = z + dz;
+        const key = `${nx},${ny},${nz}`;
+
+        // 检查是否在边界内
+        if (nx < minX - padding || nx > maxX + padding ||
+            ny < minY - padding || ny > maxY + padding ||
+            nz < minZ - padding || nz > maxZ + padding) {
+          continue;
+        }
+
+        // 如果这个位置是空的且未标记，加入队列
+        if (!voxelSet.has(key) && !outside.has(key)) {
+          outside.add(key);
+          queue.push([nx, ny, nz]);
+        }
+      }
+    }
+
+    // 找出最常用的颜色作为填充色
+    const colorCount = new Map<string, number>();
+    for (const voxel of previewVoxels) {
+      colorCount.set(voxel.c, (colorCount.get(voxel.c) || 0) + 1);
+    }
+    const fillColor = Array.from(colorCount.entries())
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || '#cccccc';
+
+    // 填充所有内部空间
+    const filled: Voxel[] = [...previewVoxels];
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          const key = `${x},${y},${z}`;
+          // 如果不在外部且不是已有体素，就填充
+          if (!outside.has(key) && !voxelSet.has(key)) {
+            filled.push({ x, y, z, c: fillColor });
+          }
+        }
+      }
+    }
+
+    setPreviewVoxels(filled);
+  };
+
   // 应用更改
   const handleApply = () => {
     onApply(previewVoxels);
@@ -127,108 +219,56 @@ export default function EditModal({
     setPreviewVoxels(initialVoxels);
   };
 
-  // 全局换色 - 将所有体素改成选定的颜色
-  const handleGlobalRecolor = () => {
-    const recolored = previewVoxels.map(voxel => ({
-      ...voxel,
-      c: selectedColor
-    }));
-    setPreviewVoxels(recolored);
-  };
-
-  // 颜色替换 - 将指定颜色的体素替换成新颜色
-  const handleColorReplace = (oldColor: string) => {
-    const replaced = previewVoxels.map(voxel =>
-      voxel.c === oldColor ? { ...voxel, c: selectedColor } : voxel
-    );
-    setPreviewVoxels(replaced);
-  };
-
-  // 随机着色 - 给每个体素随机颜色
-  const handleRandomColors = () => {
-    const colors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'];
-    const randomized = previewVoxels.map(voxel => ({
-      ...voxel,
-      c: colors[Math.floor(Math.random() * colors.length)]
-    }));
-    setPreviewVoxels(randomized);
-  };
-
-  // Y轴渐变着色
-  const handleGradientColor = (color1: string, color2: string) => {
-    // 找到Y轴的最小和最大值
-    const yValues = previewVoxels.map(v => v.y);
-    const minY = Math.min(...yValues);
-    const maxY = Math.max(...yValues);
-    const range = maxY - minY;
-
-    // 解析颜色
-    const parseColor = (hex: string) => ({
-      r: parseInt(hex.slice(1, 3), 16),
-      g: parseInt(hex.slice(3, 5), 16),
-      b: parseInt(hex.slice(5, 7), 16),
-    });
-
-    const c1 = parseColor(color1);
-    const c2 = parseColor(color2);
-
-    const gradientVoxels = previewVoxels.map(voxel => {
-      const t = range > 0 ? (voxel.y - minY) / range : 0;
-      const r = Math.round(c1.r + (c2.r - c1.r) * t);
-      const g = Math.round(c1.g + (c2.g - c1.g) * t);
-      const b = Math.round(c1.b + (c2.b - c1.b) * t);
-      const color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-      return { ...voxel, color };
-    });
-
-    setPreviewVoxels(gradientVoxels);
-  };
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-800">自定义模型</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* 统计信息 */}
-        <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-4 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm text-gray-600">当前体素数</p>
-              <p className="text-3xl font-bold text-purple-600">{previewVoxels.length}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">初始体素数</p>
-              <p className="text-2xl font-semibold text-gray-700">{initialVoxels.length}</p>
-            </div>
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl max-h-[90vh] flex flex-col">
+        {/* 固定的头部 */}
+        <div className="p-8 pb-0">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-gray-800">自定义模型</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X size={24} />
+            </button>
           </div>
-          {previewVoxels.length !== initialVoxels.length && (
-            <p className="text-sm text-purple-600 mt-2">
-              {previewVoxels.length < initialVoxels.length ? '减少' : '增加'} {Math.abs(previewVoxels.length - initialVoxels.length)} 个体素
-              （{((Math.abs(previewVoxels.length - initialVoxels.length) / initialVoxels.length) * 100).toFixed(1)}%）
-            </p>
-          )}
+
+          {/* 统计信息 */}
+          <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-4 mb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-600">当前体素数</p>
+                <p className="text-3xl font-bold text-purple-600">{previewVoxels.length}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">初始体素数</p>
+                <p className="text-2xl font-semibold text-gray-700">{initialVoxels.length}</p>
+              </div>
+            </div>
+            {previewVoxels.length !== initialVoxels.length && (
+              <p className="text-sm text-purple-600 mt-2">
+                {previewVoxels.length < initialVoxels.length ? '减少' : '增加'} {Math.abs(previewVoxels.length - initialVoxels.length)} 个体素
+                （{((Math.abs(previewVoxels.length - initialVoxels.length) / initialVoxels.length) * 100).toFixed(1)}%）
+              </p>
+            )}
+          </div>
+
+          {/* 重置按钮 */}
+          <div className="mb-4">
+            <button
+              onClick={handleReset}
+              disabled={previewVoxels.length === initialVoxels.length}
+              className="w-full py-3 bg-gray-500 text-white rounded-xl font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              🔄 重置到初始状态
+            </button>
+          </div>
         </div>
 
-        {/* 重置按钮 */}
-        <div className="mb-6">
-          <button
-            onClick={handleReset}
-            disabled={previewVoxels.length === initialVoxels.length}
-            className="w-full py-3 bg-gray-500 text-white rounded-xl font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            🔄 重置到初始状态
-          </button>
-        </div>
-
-        <div className="space-y-6">
+        {/* 可滚动的内容区域 */}
+        <div className="flex-1 overflow-y-auto px-8 pb-8">
+          <div className="space-y-6">
           {/* 缩小操作 */}
           <div className="bg-orange-50 rounded-2xl p-4">
             <h3 className="font-bold text-gray-800 mb-3">下采样（降低分辨率）</h3>
@@ -293,90 +333,37 @@ export default function EditModal({
             </button>
           </div>
 
-          {/* 涂色工具 */}
-          <div className="bg-blue-50 rounded-2xl p-4">
-            <h3 className="font-bold text-gray-800 mb-3">🎨 涂色工具</h3>
+          {/* 填充内部 */}
+          <div className="bg-emerald-50 rounded-2xl p-4">
+            <h3 className="font-bold text-gray-800 mb-3">填充内部</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              将空心骨架模型填充成实心模型，使用最常见的颜色填充
+            </p>
+            <button
+              onClick={handleFillInside}
+              className="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600"
+            >
+              🧱 填充内部空间
+            </button>
+          </div>
 
-            {/* 颜色选择器 */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                选择颜色
-              </label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="c"
-                  value={selectedColor}
-                  onChange={(e) => setSelectedColor(e.target.value)}
-                  className="w-20 h-12 rounded-xl cursor-pointer border-2 border-gray-300"
-                />
-                <span className="text-sm font-mono text-gray-600">{selectedColor}</span>
-              </div>
-            </div>
-
-            {/* 基础涂色操作 */}
-            <div className="space-y-2 mb-4">
-              <button
-                onClick={handleGlobalRecolor}
-                className="w-full py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600"
-              >
-                🎨 全局换色
-              </button>
-              <button
-                onClick={handleRandomColors}
-                className="w-full py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600"
-              >
-                🌈 随机着色
-              </button>
-              <button
-                onClick={() => handleGradientColor('#3b82f6', '#ec4899')}
-                className="w-full py-3 bg-gradient-to-r from-blue-500 to-pink-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-pink-600"
-              >
-                📊 渐变着色 (蓝→粉)
-              </button>
-            </div>
-
-            {/* 颜色统计和替换 */}
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-2">
-                当前模型颜色 (点击替换)
-              </p>
-              <div className="grid grid-cols-5 gap-2">
-                {getColorStats().map(([color, count]) => (
-                  <button
-                    key={color}
-                    onClick={() => handleColorReplace(color)}
-                    className="relative group"
-                    title={`${color} (${count}个体素)\n点击替换成选定颜色`}
-                  >
-                    <div
-                      className="w-full h-12 rounded-lg border-2 border-gray-300 hover:border-blue-500 transition-colors cursor-pointer"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="absolute bottom-0 left-0 right-0 text-[10px] text-center bg-black/70 text-white rounded-b-lg py-0.5">
-                      {count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* 底部按钮 */}
+          <div className="flex gap-3 mt-6 pt-6 border-t-2">
+            <TactileButton
+              variant="sky"
+              onClick={handleApply}
+              className="flex-1"
+            >
+              应用更改
+            </TactileButton>
+            <TactileButton
+              variant="rose"
+              onClick={onClose}
+            >
+              取消
+            </TactileButton>
           </div>
         </div>
-
-        {/* 底部按钮 */}
-        <div className="flex gap-3 mt-6 pt-6 border-t-2">
-          <TactileButton
-            variant="sky"
-            onClick={handleApply}
-            className="flex-1"
-          >
-            应用更改
-          </TactileButton>
-          <TactileButton
-            variant="rose"
-            onClick={onClose}
-          >
-            取消
-          </TactileButton>
         </div>
       </div>
     </div>

@@ -6,12 +6,12 @@ import {
   RefreshCw,
   Download,
   Share2,
-  Key,
   Languages,
   Settings,
   Undo,
   Redo,
-  Palette,
+  Brain,
+  Loader2,
 } from 'lucide-react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -20,9 +20,11 @@ import TactileButton from './components/TactileButton';
 import PromptModal, { GenerationSettings } from './components/PromptModal';
 import EditModal from './components/EditModal';
 import HandGestureControl from './components/HandGestureControl';
+import LogicHub, { GenerationLog } from './components/LogicHub';
 import { VoxelEngine } from './engine/VoxelEngine';
 import { Voxel } from './types';
 import { generateVoxelModel } from './utils/gemini';
+import { generateVoxelModelFromWorkflow } from './utils/workflow';
 import { presets } from './utils/presets';
 import { useLanguage } from './contexts/LanguageContext';
 
@@ -31,26 +33,26 @@ function App() {
   const [voxels, setVoxels] = useState<Voxel[]>([]);
   const [voxelHistory, setVoxelHistory] = useState<Voxel[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [generationHistory, setGenerationHistory] = useState<Array<{ prompt: string; voxels: Voxel[]; timestamp: number }>>([]);
+  const [generationLogs, setGenerationLogs] = useState<GenerationLog[]>([]);
+  const [isLogicHubOpen, setIsLogicHubOpen] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [showApiInput, setShowApiInput] = useState(false);
-  const [isPaintMode, setIsPaintMode] = useState(false);
-  const [paintColor, setPaintColor] = useState('#3b82f6');
   const [isCounterExpanded, setIsCounterExpanded] = useState(true); // 计数器展开状态
+
+  // 工作流配置 - 硬编码默认值
+  const apiMode = 'workflow'; // 固定使用工作流模式
+  const workflowUrl = 'https://liai-app.chj.cloud/v1/chat-messages';
+  const workflowKey = 'app-mIhY5PkUoC0UrLULTfWDvNf5';
+
   const engineRef = useRef<VoxelEngine | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
 
-  // 从 localStorage 加载 API key、历史记录，并加载默认预设模型
+  // 从 localStorage 加载历史记录，并加载默认预设模型
   useEffect(() => {
-    const savedKey = localStorage.getItem('ai_api_key');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-
     // 尝试从localStorage加载保存的历史记录
     try {
       const savedHistory = localStorage.getItem('voxel_history');
@@ -154,17 +156,62 @@ function App() {
     }
   };
 
-  const handleNewModel = async (prompt: string, settings: GenerationSettings, image?: string) => {
-    // AI生成功能需要API key，但如果用户只想玩预设模型则不需要
+  const handleNewModel = async (prompt: string, settings: GenerationSettings) => {
     setIsLoading(true);
+    const timestamp = Date.now();
+    let systemPrompt = '';
+    let aiResponse = '';
+    let success = false;
+    let errorMsg = '';
+
     try {
-      const newVoxels = await generateVoxelModel(apiKey, prompt, settings, image);
+      let newVoxels: Voxel[];
+
+      // 使用工作流API
+      newVoxels = await generateVoxelModelFromWorkflow(
+        { apiUrl: workflowUrl, apiKey: workflowKey || undefined },
+        prompt,
+        settings,
+        undefined,
+        (sys, ai) => {
+          systemPrompt = sys;
+          aiResponse = ai;
+        }
+      );
+
       updateVoxelsWithHistory(newVoxels);
+      success = true;
+
+      // 添加到生成历史记录
+      setGenerationHistory(prev => [
+        {
+          prompt: prompt,
+          voxels: newVoxels,
+          timestamp,
+        },
+        ...prev, // 最新的在前面
+      ]);
+
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error generating model:', error);
-      alert(`${t('msg.generateError')}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert(`${t('msg.generateError')}: ${errorMsg}`);
     } finally {
+      // 记录生成日志
+      setGenerationLogs(prev => [
+        {
+          timestamp,
+          userPrompt: prompt,
+          systemPrompt,
+          aiResponse,
+          settings,
+          success,
+          error: errorMsg || undefined,
+        },
+        ...prev,
+      ]);
+
       setIsLoading(false);
     }
   };
@@ -206,10 +253,6 @@ function App() {
     }
   };
 
-  const saveApiKey = () => {
-    localStorage.setItem('ai_api_key', apiKey);
-    setShowApiInput(false);
-  };
 
   const handleZoom = useCallback((delta: number) => {
     if (!cameraRef.current || !controlsRef.current) return;
@@ -286,6 +329,16 @@ function App() {
   const handleJsonImport = useCallback((voxels: any[]) => {
     console.log('Importing JSON with', voxels.length, 'voxels');
     updateVoxelsWithHistory(voxels);
+
+    // 添加到生成历史记录
+    setGenerationHistory(prev => [
+      {
+        prompt: `JSON导入 (${voxels.length}个体素)`,
+        voxels: voxels,
+        timestamp: Date.now(),
+      },
+      ...prev,
+    ]);
   }, [updateVoxelsWithHistory]);
 
   const handleEditApply = useCallback((newVoxels: Voxel[]) => {
@@ -293,44 +346,15 @@ function App() {
     updateVoxelsWithHistory(newVoxels);
   }, [updateVoxelsWithHistory]);
 
-  // 处理体素涂色
-  const handleVoxelPaint = useCallback((x: number, y: number, z: number) => {
-    console.log('handleVoxelPaint called:', { x, y, z, isPaintMode, paintColor });
-    if (!isPaintMode) return;
-
-    const newVoxels = voxels.map(voxel => {
-      if (voxel.x === x && voxel.y === y && voxel.z === z) {
-        console.log('Found matching voxel, changing color from', voxel.c, 'to', paintColor);
-        return { ...voxel, c: paintColor };
-      }
-      return voxel;
-    });
-
-    updateVoxelsWithHistory(newVoxels);
-  }, [isPaintMode, voxels, paintColor, updateVoxelsWithHistory]);
-
   return (
     <div className="relative w-full h-screen">
-      {/* 3D 场景 - 涂色模式时改变鼠标样式 */}
+      {/* 3D 场景 */}
       <Scene
         voxels={voxels}
         autoRotate={autoRotate}
         onEngineReady={handleEngineReady}
         onCameraReady={handleCameraReady}
-        isPaintMode={isPaintMode}
-        onVoxelClick={handleVoxelPaint}
       />
-
-      {/* 涂色模式鼠标样式覆盖层 */}
-      {isPaintMode && (
-        <div
-          className="absolute inset-0 pointer-events-none z-5"
-          style={{ cursor: 'crosshair' }}
-        />
-      )}
-      <style>{`
-        ${isPaintMode ? 'canvas { cursor: crosshair !important; }' : ''}
-      `}</style>
 
       {/* 顶部像素块计数 - 可展开收起 */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 z-10">
@@ -436,33 +460,6 @@ function App() {
         </TactileButton>
 
         <TactileButton
-          variant={isPaintMode ? 'amber' : 'sky'}
-          onClick={() => setIsPaintMode(!isPaintMode)}
-          disabled={voxels.length === 0}
-        >
-          <Palette className="inline mr-2" size={20} />
-          {t('btn.paintMode')}
-        </TactileButton>
-
-        {/* 涂色模式颜色选择器 - 紧邻按钮 */}
-        {isPaintMode && (
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-amber-400">
-            <p className="text-xs font-bold text-amber-600 mb-2 text-center">
-              🎨 选择颜色
-            </p>
-            <input
-              type="color"
-              value={paintColor}
-              onChange={(e) => setPaintColor(e.target.value)}
-              className="w-full h-16 rounded-xl cursor-pointer border-2 border-gray-300"
-            />
-            <p className="text-xs font-mono text-gray-600 mt-2 text-center">
-              {paintColor}
-            </p>
-          </div>
-        )}
-
-        <TactileButton
           variant="purple"
           onClick={() => setIsEditModalOpen(true)}
           disabled={voxels.length === 0}
@@ -474,12 +471,18 @@ function App() {
 
       {/* 右上角功能按钮 - 调整位置避开语言按钮 */}
       <div className="absolute top-24 right-8 flex flex-col gap-4">
+        {/* Logic Hub 按钮 */}
         <button
-          onClick={() => setShowApiInput(true)}
-          className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
-          title={t('tooltip.apiKey')}
+          onClick={() => setIsLogicHubOpen(true)}
+          className="p-3 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-full shadow-lg hover:from-emerald-500 hover:to-cyan-600 transition-all text-white relative group"
+          title="Logic Hub - 查看AI思考过程"
         >
-          <Key size={24} />
+          <Brain size={24} />
+          {generationLogs.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {generationLogs.length}
+            </span>
+          )}
         </button>
 
         <button
@@ -547,54 +550,53 @@ function App() {
         onSubmit={handleNewModel}
         onJsonImport={handleJsonImport}
         isLoading={isLoading}
+        generationHistory={generationHistory}
+        onLoadHistory={(voxels) => {
+          updateVoxelsWithHistory(voxels);
+          setIsModalOpen(false);
+        }}
       />
 
-      {/* API Key 输入框 */}
-      {showApiInput && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              AI API Key · 可选
-            </h2>
-            <p className="text-gray-600 mb-4">
-              用AI生成模型需要API key，但可以直接使用右下角的预设模型免费玩耍。
-              不填也可以关闭此对话框。
-            </p>
+      {/* Logic Hub */}
+      <LogicHub
+        isOpen={isLogicHubOpen}
+        onClose={() => setIsLogicHubOpen(false)}
+        logs={generationLogs}
+      />
 
-            {/* Gemini API Key */}
-            <p className="text-sm text-gray-500 mb-2">
-              获取API key: <a
-                href="https://makersuite.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sky-500 hover:underline"
-              >
-                Google AI Studio
-              </a>
-            </p>
+      {/* 全屏加载遮罩 */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-3xl p-12 shadow-2xl flex flex-col items-center gap-6 max-w-md">
+            {/* 旋转的加载图标 */}
+            <div className="relative">
+              <Loader2
+                size={80}
+                className="text-sky-500 animate-spin"
+                strokeWidth={2.5}
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-purple-500 rounded-full opacity-20 animate-pulse"></div>
+              </div>
+            </div>
 
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="AIza... (可选)"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-2xl focus:border-amber-500 focus:outline-none mb-4"
-            />
-            <div className="flex gap-3">
-              <TactileButton
-                variant="amber"
-                onClick={saveApiKey}
-                className="flex-1"
-              >
-                保存
-              </TactileButton>
-              <TactileButton
-                variant="rose"
-                onClick={() => setShowApiInput(false)}
-                className="flex-1"
-              >
-                跳过
-              </TactileButton>
+            {/* 加载文字 */}
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                {language === 'en' ? 'AI is Creating...' : 'AI正在创作中...'}
+              </h3>
+              <p className="text-gray-600">
+                {language === 'en'
+                  ? 'Please wait while we generate your voxel model'
+                  : '请稍候，正在生成您的体素模型'}
+              </p>
+            </div>
+
+            {/* 动画点点点 */}
+            <div className="flex gap-2">
+              <div className="w-3 h-3 bg-sky-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
         </div>

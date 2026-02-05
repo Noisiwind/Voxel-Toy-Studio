@@ -111,8 +111,8 @@ export default function PromptModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col">
-        <div className="flex justify-between items-center mb-6 p-8 pb-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center mb-6 p-6 pb-4 flex-shrink-0">
           <h2 className="text-3xl font-bold text-gray-800">{t("modal.title")}</h2>
           <button
             onClick={onClose}
@@ -123,7 +123,7 @@ export default function PromptModal({
           </button>
         </div>
 
-        <div className="space-y-4 px-8 pb-4 overflow-y-auto flex-1">
+        <div className="space-y-4 px-6 pb-4 overflow-y-auto flex-1 min-h-0">
           {/* 文本输入 */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -276,7 +276,7 @@ export default function PromptModal({
         </div>
 
         {/* 固定的底部按钮区域 */}
-        <div className="border-t-2 border-gray-200 bg-gray-50 px-8 py-4">
+        <div className="border-t-2 border-gray-200 bg-gray-50 px-6 py-4 flex-shrink-0">
           <div className="flex gap-3">
             <TactileButton
               variant="sky"

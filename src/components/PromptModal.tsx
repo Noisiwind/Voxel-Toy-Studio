@@ -170,7 +170,7 @@ export default function PromptModal({
               <li>• <strong>标准风格 (Standard)</strong>: 均衡细节，推荐使用 (~350体素)</li>
               <li>• <strong>详细风格 (Detailed)</strong>: 丰富纹理，需要更多体素 (~500体素)</li>
               <li className="pt-1 border-t border-sky-200">
-                ⚡ <strong>超大模型 (>500体素)</strong>: 自动使用压缩格式，可生成超精细模型 (~8000+体素)
+                ⚡ <strong>超大模型 (&gt;500体素)</strong>: 自动使用压缩格式，可生成超精细模型 (~8000+体素)
               </li>
             </ul>
           </div>
